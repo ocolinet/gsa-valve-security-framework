@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<webProcess name="authent-doc" xmlns="http://www.google.com/enterprise/gsa">
+   <request>
+    	<type>GET</type>
+      	<URL>http://213.223.65.98:8080/webtop/</URL>
+   </request>
+   <request>
+    	<type>GET</type>
+      	<URL>http://213.223.65.98:8080/webtop/drl/objectId/0900045780030d92</URL>
+   </request>
+   <request>
+    	<type>GET</type>
+   	<URL>http://213.223.65.98:8080/webtop/component/drl</URL>
+  	<parameter name="objectId" value="0900045780030d92"/>
+  	<!--<parameter name="ReLoad" value="1138617809328"/>-->
+   </request>
+   <request>
+    	<type>POST</type>
+   	<URL>http://213.223.65.98:8080/webtop/wdk/system/login/login.jsp</URL>
+  	<parameter name="__dmfFormId" value="Login_0"/>
+  	<parameter name="__dmfAction" value="Login_0_onLogin"/>
+	<parameter name="__dmfHandler" value="Login_0_Login_0"/>
+	<parameter name="__dmfHandlerArgs" value="Login_0_"/>
+	<parameter name="__dmfControl" value=""/>
+	<parameter name="__dmfServletPath" value="/custom/wdk/system/login/login.jsp"/>
+	<parameter name="Login_username_0" value=""/>
+	<parameter name="Login_password_0" value=""/>
+	<parameter name="Login_docbase_0" value=""/>
+	<parameter name="Login_saveCredentialCheckbox_hidden_0" value="true"/>
+	<parameter name="__dmfRequestId" value="__client1~~1"/>
+	<parameter name="__dmfHiddenX" value="0"/>
+	<parameter name="__dmfHiddenY" value="0"/>
+	<parameter name="__dmfFormclass" value="com.documentum.web.formext.session.Login"/>
+	<parameter name="__dmfNlsclass" value="com.documentum.webtop.session.LoginNlsProp"/>
+	<parameter name="__dmfInitDocbase" value=""/>
+	<parameter name="__dmfInitDocbaseUser" value=""/>
+	<parameter name="__dmfInitDocbasePassword" value=""/>
+	<parameter name="__dmfInitDocbaseDomain" value=""/>
+	<parameter name="__dmfInitLocale" value=""/>
+	<parameter name="__dmfSerialNumber" value="0"/>
+	<parameter name="__dmfClientId" value="1138610898156"/>
+	<parameter name="objectId" value="0900045780030d92"/>
+	<parameter name="ReLoad" value="1138618720375"/>
+  </request>
+  <request>
+  	<type>GET</type>
+  	<URL>http://213.223.65.98:8080/webtop/component/drlauthenticate</URL>
+  	<parameter name="objectId" value="0900045780030d92"/>
+  	<parameter name="ReLoad" value="1138618720375"/>
+  	<parameter name="__dmfRequestId" value="__client2~~2"/>
+  	<parameter name="__dmfJumpType" value="jump"/>
+  	<parameter name="__dmfClientId" value="1138610898156"/>
+   </request>
+</webProcess>

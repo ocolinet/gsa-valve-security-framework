@@ -1,0 +1,17 @@
+Config >= v1.3
+<Valve className="com.google.gsa.Valve" gsaValveConfigPath="$TOMCAT_HOME/common/classes/gsaValveConfig.xml"/>
+
+Config = v1.2
+<Valve className="com.google.gsa.Valve" gsaValveConfigPath="gsaValve.config"/>
+
+
+Config <v1.2
+<Valve className="com.google.gsa.Valve"
+   		
+		loginUrl="http://arlington.corp.google.com:8080/valve/login.jsp"	
+		authCookieDomain=".corp.google.com"   		
+		authenticationProcessImpl="com.google.gsa.valve.rootAuth.RootAuthenticationProcess"
+   		authenticateServletPath="/Authenticate"
+   		authorizationProcessImpl="com.google.gsa.valve.rootAuth.RootAuthorizationProcess" 
+   		authCookiePath="/" authMaxAge="30000"
+/>

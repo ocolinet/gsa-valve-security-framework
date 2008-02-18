@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<webProcess name="authent-doc" xmlns="http://www.google.com/enterprise/gsa">
+
+<request>
+	<type>GET</type>
+	<URL>http://swp-vm-lvlk95.sword.fr/livelink/livelink.exe</URL>
+</request>
+<request>
+	<type>GET</type>
+	<URL>http://swp-vm-lvlk95.sword.fr/livelink/livelink.exe?func=LL.getlogin&amp;NextURL=%2Flivelink%2Flivelink%2Eexe%3F%3FRedirect%3D1</URL>
+</request>
+
+<request>
+	<type>POST</type>
+	<URL>http://swp-vm-lvlk95.sword.fr/livelink/livelink.exe</URL>
+	<parameter name="func" value="ll.login"/>
+	<parameter name="CurrentClientTime" value="D%2F2007%2F12%2F3%3A10%3A57%3A29"/>
+	<parameter name="NextURL" value="%2Flivelink%2Flivelink.exe%3F%3FRedirect%3D1"/>
+	<parameter name="Username" value="jeremy"/>
+	<parameter name="Password" value="jeremy"/>
+</request>
+
+<request>
+	<type>GET</type>
+	<URL>http://swp-vm-lvlk95.sword.fr/livelink/livelink.exe??Redirect=1</URL>
+</request>
+
+<request>
+	<type>GET</type>
+	<URL>http://swp-vm-lvlk95.sword.fr/livelink/livelink.exe?func=Enterprise.Home</URL>
+</request>
+
+<request>
+	<type>GET</type>
+	<URL>http://swp-vm-lvlk95.sword.fr/livelink/livelink.exe?func=llworkspace</URL>
+</request>
+
+</webProcess>
+
+
+
+
+
+
+
+
+
+

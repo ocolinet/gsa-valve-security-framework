@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+	
+        <xs:element name="GSAValveConfiguration">
+            <xs:complexType>
+     		<xs:sequence>
+        		<xs:element name="loginUrl" type="xs:anyURI"/>
+  				<xs:element name="authCookieDomain" type="xs:string" maxOccurs="1" minOccurs="1"/>
+  				<xs:element name="authenticationProcessImpl" type="xs:string" maxOccurs="1" minOccurs="1"/>
+  				<xs:element name="authenticateServletPath" type="xs:string" maxOccurs="1" minOccurs="1"/>
+  				<xs:element name="authorizationProcessImpl" type="xs:string" maxOccurs="1" minOccurs="1"/>
+  				<xs:element name="authCookiePath" type="xs:string" maxOccurs="1" minOccurs="1"/>
+  				<xs:element name="authMaxAge" type="xs:integer" maxOccurs="1" minOccurs="1"/>
+  				<xs:element name="searchHost" maxOccurs="unbounded" minOccurs="1" type="xs:string"/>
+                                <xs:element name="maxConnectionsPerHost" type="xs:integer" maxOccurs="1" minOccurs="1"/>
+                                <xs:element name="maxTotalConnections" type="xs:integer" maxOccurs="1" minOccurs="1"/>
+                                <xs:element name="testFormsCrawlUrl" type="xs:string" maxOccurs="1" minOccurs="0"/>
+                                <xs:element name="kerberos" ref="kerberos" maxOccurs="1" minOccurs="1"/>
+                                <xs:element name="sessions" ref="sessions" maxOccurs="1" minOccurs="1"/>
+                                <xs:sequence>
+                                    <xs:element ref="repository" maxOccurs="unbounded"/>
+                                </xs:sequence>
+                </xs:sequence>
+            </xs:complexType>
+	</xs:element>
+
+	
+        <xs:element name="repository">
+            <xs:complexType>
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" ref="P"/>
+                </xs:sequence>
+                <xs:attribute name="authN" use="required" type="xs:string"/>
+                <xs:attribute name="authZ" use="required" type="xs:string"/>
+                <xs:attribute name="id" use="required" type="xs:string"/>
+                <xs:attribute name="failureAllow" use="required" type="xs:string"/>
+                <xs:attribute name="pattern" use="required" type="xs:anyURI"/>
+            </xs:complexType>
+        </xs:element>
+  
+        <xs:element name="P">
+            <xs:complexType>
+                <xs:attribute name="N" use="required" type="xs:string"/>
+                <xs:attribute name="V" use="required" type="xs:string"/>
+            </xs:complexType>
+        </xs:element>
+        
+        <xs:element name="kerberos">
+            <xs:complexType>
+                <xs:attribute name="isKerberos" use="required" type="xs:string"/>
+                <xs:attribute name="isNegotiate" use="optional" type="xs:string"/>
+                <xs:attribute name="krbini" use="optional" type="xs:string"/>
+                <xs:attribute name="krbconfig" use="optional" type="xs:string"/>
+                <xs:attribute name="krbAdditionalAuthN" use="optional" type="xs:string"/>
+                <xs:attribute name="krbLoginUrl" use="optional" type="xs:string"/>
+                <xs:attribute name="krbUsrPwdCrawler" use="optional" type="xs:string"/>
+                <xs:attribute name="krbUsrPwdCrawlerUrl" use="optional" type="xs:string"/>
+            </xs:complexType>
+        </xs:element>
+        
+        <xs:element name="sessions">
+            <xs:complexType>
+                <xs:attribute name="isSessionEnabled" use="required" type="xs:string"/>
+                <xs:attribute name="sessionTimeout" use="optional" type="xs:string"/>
+                <xs:attribute name="maxSessionAge" use="optional" type="xs:string"/>
+                <xs:attribute name="sessionCleanup" use="optional" type="xs:string"/>
+                <xs:attribute name="sendCookies" use="optional" type="xs:string"/>
+            </xs:complexType>
+        </xs:element>
+</xs:schema>
