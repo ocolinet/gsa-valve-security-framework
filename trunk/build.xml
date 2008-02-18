@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Paul Thompson - Google Inc -->
+<!-- Ant build script to create a deployment packages for the ValveSDK -->
+
+<!-- it creates a number of different final packages -->
+<!-- valveSDK_${version}.zip - Deployment package of the core valve, including authN and authZ classes and their src-->
+<!-- valveSDK_${version}_src.zip - src code of valve and sample packages -->
+<!-- valveSDK_${version}_sword.zip - src and classes for Sword authN/authZ classes -->
+	
+
+
+<project name="Valve Build" default="package" basedir=".">
+
+	<!-- Version 1.3 - First release with XML based configuration -->
+	<!-- Version 1.3.1 - Fix to problem of obtaining the gsa that made the inital search request -->
+        <!-- Version 1.4 - Kerberos support -->
+	
+	<property name="version" value="1.4"/>
+	
+	<!-- environment includes for ant 'if' statement -->
+	<typedef resource="net/sf/antcontrib/antlib.xml"/>
+	<property environment="env"/> 
+	
+	<!-- location of source code -->
+        <property name="src" value="${basedir}/src"/>
+	
+        <!-- BEGIN LIB PROPERTY DEFINITION -->
+	<!-- modify the following values to point to the correct values for your environment -->
+            <!-- local location of tomcat install -->
+            <property name="tomcat.home" value="C:/Program Files/Tomcat 5.5"/>
+            <!-- location of J2EE libs -->
+            <property name="J2EElibs" value="C:/Program Files/Tomcat 5.5/common/lib/"/>
+            <!-- location of extra libs required for this build -->
+            <property name="local_libs" value="C:/Valve1.4/libraries"/>
+            <!-- path as to where to create the deployment version of the code -->
+            <property name="deploy" value="c:/valvedeploy/deploy"/>
+        <!-- END LIB PROPERTY DEFINITION --> 
+
+
+        <property name="classes" value="${deploy}/classes"/>
+
+	<!-- name for jar file where core valve code will be packaged into -->
+	<property name="app.jar" value="valve_${version}.jar"/>	
+	<property name="mainclass" value="com.google.gsa.Valve"/>
+
+	<property name="renamelog" value="${deploy}/renamelog.xml"/>
+	
+	<!-- classes required by this project to build -->
+	<path id="valve.class.path">
+		<pathelement path="${J2EElibs}/servlet-api.jar"/>
+		<pathelement path="${J2EElibs}/jsp-api.jar"/>
+		<pathelement path="${local_libs}/Tomcat/catalina.jar"/>
+		<pathelement path="${local_libs}/log4j-1.2.14/log4j-1.2.14.jar"/>
+		<pathelement path="${local_libs}/jakarta-regexp-1.5/jakarta-regexp-1.5.jar"/>
+		<pathelement path="${local_libs}/commons-httpclient-3.0/commons-httpclient-3.0.jar"/>
+		<pathelement path="${local_libs}/Sniffer/sniffer.jar"/>
+		<pathelement path="${local_libs}/commons-collections-3.2/commons-collections-3.2.jar"/>
+		<pathelement path="${local_libs}/htmlparser1_6/htmlparser1_6.jar"/>
+		<pathelement path="${local_libs}/xerces-2_9_0/xercesImpl.jar"/>
+		<pathelement path="${local_libs}/commons-digester-1.8/commons-digester-1.8.jar"/>
+                <pathelement path="${local_libs}/commons-codec-1.3/commons-codec-1.3.jar"/>
+                <pathelement path="${local_libs}/commons-beanutils-1.7.0/commons-beanutils-1.7.0.jar"/>
+                <pathelement path="${local_libs}/jdom/jdom.jar"/>
+                <pathelement path="${local_libs}/livelink/lapi.jar"/>
+		<pathelement path="${local_libs}/ValveKrb/ValveKrb5.jar"/>
+                <pathelement path="${local_libs}/ValveSessions/ValveSessions.jar"/>                
+	</path>
+	
+        <!-- compiles all the code -->
+        <target name="compile">
+            <mkdir dir="${classes}"/>
+            <javac srcdir="${src}" destdir="${classes}">    		
+     		<classpath refid="valve.class.path"></classpath>
+            </javac>
+        </target>
+	
+	<!-- builds the valve.jar of all classes that are not needed as seperate classes -->
+	<!-- as with a normal deployment they do not require changes -->
+	<target name="build" depends="compile">
+		<jar jarfile="${deploy}/${app.jar}">
+			<fileset dir="${classes}" includes="com/google/gsa/*.class"/>			
+			<fileset dir="${classes}" includes="com/google/gsa/valve/rootAuth/*.class"/>
+		</jar>
+
+	</target>
+	
+	<target name="deloy" depends="build">
+                <mkdir dir="${deploy}/webappServer"/>
+                <mkdir dir="${deploy}/webappServer/server"/>
+		<mkdir dir="${deploy}/webappServer/server/lib"/>
+		
+		<copy todir="${deploy}/webappServer/server/classes">
+		    <fileset dir="${classes}"/>
+		</copy>
+                
+                <copy todir="${deploy}/webappServer/webapps/valve/WEB-INF/classes">
+		    <fileset dir="${classes}"/>
+		</copy>
+		
+		<!-- default log properties -->
+		<copy file="${basedir}/log4j.properties" todir="${deploy}/webappServer/common/classes"/>
+		<copy file="${basedir}/gsaValveConfig.xml" todir="${deploy}/webappServer/common/classes"/>
+		<copy file="${basedir}/server.conf.valve" todir="${deploy}/webappServer"/>
+		<copy file="${basedir}/readme.txt" todir="${deploy}/webappServer"/>
+		<copy file="${basedir}/conf/authent_request_53_custom.xml" todir="${deploy}/webappServer/common/classes"/>
+		<copy file="${basedir}/conf/authorize_request_53.xml" todir="${deploy}/webappServer/common/classes"/>
+		
+		<!-- web app -->
+		<mkdir dir="${deploy}/webappServer/webapps/valve"/>
+		<copy todir="${deploy}/webappServer/webapps/valve">
+			<fileset dir="${basedir}/WebRoot"/>
+		</copy>
+		<!-- delete classes that are part of valve.jar as they are not needed in the deployment -->
+		<delete includeemptydirs="true">
+			<fileset dir="${deploy}/webappServer/webapps/valve/WEB-INF/classes/com/google/gsa/" includes="*.class"/>
+			<fileset dir="${deploy}/webappServer/server/classes/com/google/gsa/" includes="*.class"/>
+			<fileset dir="${deploy}/webappServer/webapps/valve/WEB-INF/classes/com/google/gsa/valve/rootAuth" includes="*.class"/>
+			<fileset dir="${deploy}/webappServer/server/classes/com/google/gsa/valve/rootAuth" includes="*.class"/>
+		</delete>
+		<delete dir="${deploy}/webappServer/webapps/valve/WEB-INF/classes/com/google/gsa/valve/rootAuth"/>
+		<delete dir="${deploy}/webappServer/server/classes/com/google/gsa/valve/rootAuth"/>
+		<!-- delete the sword classes -->
+		<delete dir="${deploy}/webappServer/webapps/valve/WEB-INF/classes/com/google/gsa/valve/sword"/>
+		<delete dir="${deploy}/webappServer/server/classes/com/google/gsa/valve/sword"/>
+                
+		<!-- Web app libs into server/libs -->
+		<copy todir="${deploy}/webappServer/server/lib">
+			<fileset dir="${deploy}/webappServer/webapps/valve/WEB-INF/lib"/>
+		</copy>
+
+		<!-- valve.jar needs to be in server/lib and webapp/WEB-INF/lib -->
+		<copy file="${deploy}/${app.jar}" todir="${deploy}/webappServer/server/lib"/>
+		<copy file="${deploy}/${app.jar}" todir="${deploy}/webappServer/webapps/valve/WEB-INF/lib"/>
+
+		<!-- Add src for the module classes-->
+		<mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/httpbasic"/>
+		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/httpbasic">
+			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/httpbasic"/>
+		</copy>
+                <mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/ldap"/>
+		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/ldap">
+			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/ldap"/>
+		</copy>
+                <mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/noauth"/>
+		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/noauth">
+			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/noauth"/>
+		</copy>
+                <mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sample"/>
+		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sample">
+			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/sample"/>
+		</copy>
+                <mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sm"/>
+		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sm">
+			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/sm"/>
+		</copy>
+		<mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/utils"/>
+		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/utils">
+			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/utils"/>
+		</copy>
+		
+	</target>
+
+	<target name="package" depends="deloy">
+		<zip destfile="${deploy}/valveSDK_${version}.zip" basedir="${deploy}/webappServer"></zip>
+		<zip destfile="${deploy}/valveSDK_${version}_src.zip" basedir="${src}" excludes="**/sword/**"></zip>
+		<zip destfile="${deploy}/valveSDK_${version}_sword.zip" basedir="${deploy}" includes="classes/com/google/gsa/valve/sword/*.class"></zip>
+		<zip destfile="${deploy}/valveSDK_${version}_sword.zip" basedir="${src}" includes="com/google/gsa/valve/sword/*.java" update="true"></zip>
+	</target>
+	
+
+	<!-- valveSDK_${version}_sword.zip - src and classes for Sword authN/authZ classes -->
+	
+
+	
+	
+	
+</project> 

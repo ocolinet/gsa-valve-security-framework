@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="Valve Build" default="tomcat-start" basedir=".">
+
+	<typedef resource="net/sf/antcontrib/antlib.xml"/>
+	<property environment="env"/> 
+
+    <property name="snifferVersion" value="sniffer_1.2.jar"/>
+    <property name="src" value="${basedir}/src"/>
+	<if>
+		<equals arg1="${env.COMPUTERNAME}" arg2="PTHOMPSON-UK" />
+		<then>
+			<!-- local location of tomcat install -->
+			<property name="tomcat.home" value="C:/paul/Tomcat 5.5"/>
+			<property name="J2EElibs" value="C:\Program Files\MyEclipse Enterprise Workbench 5.1.0 GA\myeclipse\eclipse\plugins\com.genuitec.eclipse.j2eedt.core_5.1.0\data\libraryset\1.4"/>
+			<property name="local_libs" value="I:/JavaLibs"/>
+		</then>
+		<else>
+                        <!-- Linux Box
+	   		<property name="tomcat.home" value="/home/pthompson/apache-tomcat-5.5.20"/>
+			<property name="J2EElibs" value="/usr/local/google/opt/myeclipse510/eclipse/plugins/com.genuitec.eclipse.j2eedt.core_5.1.0/data/libraryset/1.4"/>
+			<property name="local_libs" value="/home/pthompson/JavaLibs"/>
+                        -->
+                        <property name="tomcat.home" value="C:/Program Files/Tomcat 5.5"/>
+                        <property name="J2EElibs" value="C:/Program Files/Tomcat 5.5/common/lib/"/>
+                        <property name="local_libs" value="C:/Valve1.4/WebRoot/WEB-INF/lib"/>
+		</else>
+	</if>
+	
+	<property name="deploy" value="${tomcat.home}"/>
+
+	<property name="classes" value="${deploy}/server/classes"/>
+	<property name="webappclasses" value="${deploy}/webapps/valve/WEB-INF/classes"/>		
+
+        <property name="mainclass" value="com.google.gsa.Valve"/>
+        <property name="renamelog" value="${deploy}/renamelog.xml"/>
+
+	
+	<path id="valve.class.path">
+			<pathelement path="${J2EElibs}/javax.servlet.jar"/>
+			<pathelement path="${J2EElibs}/javax.servlet.jsp.jar"/>
+			<pathelement path="${local_libs}/Tomcat/catalina.jar"/>
+			<pathelement path="${local_libs}/logging-log4j-1.2.14/dist/lib/log4j-1.2.14.jar"/>
+			<pathelement path="${local_libs}/jakarta-regexp-1.5/jakarta-regexp-1.5.jar"/>
+			<pathelement path="${local_libs}/commons-httpclient-3.0.1/commons-httpclient-3.0.1.jar"/>
+			<pathelement path="${local_libs}/sniffer/sniffer.jar"/>
+			<pathelement path="${local_libs}/commons-collections-3.2/commons-collections-3.2.jar"/>
+			<pathelement path="${local_libs}/htmlparser1_6/lib/htmlparser.jar"/>
+			<pathelement path="${local_libs}/xerces-2_9_0/xercesImpl.jar"/>
+			<pathelement path="${local_libs}/commons-digester-1.8/commons-digester-1.8.jar"/>
+			<pathelement path="${local_libs}/livelink/lapi.jar"/>
+	</path>
+	
+	<target name="tomcat-stop">
+		    <java jar="${tomcat.home}/bin/bootstrap.jar" fork="true">
+		        <jvmarg value="-Dcatalina.home=${tomcat.home}"/>
+		        <arg line="stop"/>
+		    </java>
+	</target>
+	
+	
+    <target name="compile" depends="tomcat-stop">
+    	<mkdir dir="${classes}"/>
+    	<javac srcdir="${src}" destdir="${classes}">    		
+     		<classpath refid="valve.class.path"></classpath>
+	    </javac>
+    </target>
+	
+	<target name="deploy" depends="compile">
+		<!-- Add config file to classpath -->
+		<copy file="gsaValve.config" todir="${deploy}/common/classes"/>
+		<copy file="gsaValveConfig.xml" todir="${deploy}/common/classes"/>
+		<copy file="log4j.properties" todir="${deploy}/common/classes"/>
+		<copy file="conf/authN_lvlk95.xml" todir="${deploy}/common/classes"/>
+		<copy file="conf/authN_wt6.xml" todir="${deploy}/common/classes"/>
+		<copy todir="${webappclasses}">
+			<fileset dir="${classes}"/>
+		</copy>
+		
+		<!-- Ensure correct version of sniffer -->
+		<delete >
+			<fileset dir="${deploy}/server/lib" includes="sniffer*.jar"/>
+			<fileset dir="${deploy}/webapps/valve/WEB-INF/lib" includes="sniffer*.jar"/>
+		</delete>
+		<copy file="${local_libs}/sniffer/${snifferVersion}" todir="${deploy}/server/lib"/>
+		<copy file="${local_libs}/sniffer/${snifferVersion}" todir="${deploy}/webapps/valve/WEB-INF/lib"/>
+
+	</target>
+	
+	
+	<target name="tomcat-start" depends="deploy">
+	    <java jar="${tomcat.home}/bin/bootstrap.jar" fork="true">
+	        <jvmarg value="-Dcatalina.home=${tomcat.home}"/>
+	    </java>
+	</target>
+
+	
+	
+
+	
+</project> 

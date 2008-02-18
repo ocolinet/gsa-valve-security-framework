@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="com.genuitec.eclipse.j2eedt.core.J2EE14_CONTAINER"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/commons-collections-3.2/commons-collections-3.2.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/commons-httpclient-3.0.1/commons-httpclient-3.0.1.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/xerces-2_9_0/xercesImpl.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/logging-log4j-1.2.14/dist/lib/log4j-1.2.14.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/htmlparser1_6/lib/htmlparser.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/commons-codec-1.3/commons-codec-1.3.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/jakarta-regexp-1.5/jakarta-regexp-1.5.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/Tomcat/catalina.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/sniffer/sniffer_1.2.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/commons-digester-1.8/commons-digester-1.8.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/jdom-1.0/build/jdom.jar"/>
+	<classpathentry kind="var" path="LOCAL_LIBS/livelink/lapi.jar"/>
+	<classpathentry kind="output" path="WebRoot/WEB-INF/classes"/>
+</classpath>

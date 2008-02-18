@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=windows-1252"></meta>
+    <title>readme</title>
+  </head>
+  <body>
+     <h1>Google Search Appliance (GSA) Valve Security Framework</h1>
+     <p>
+      <font size="5">
+       Readme</font><br>
+    </p>
+     <p>
+      Strategic and secure information sources are naturally becoming key repositories that customers want to make searchable. Since search is a platform and not just an application commodity, it is a pre-requisite to cope with heterogeneous security systems in order to seamlessly roll-out an Enterprise-wide secure search capability. 
+    </p><p>
+      The search appliance can nicely integrate with popular single sign-on (SSO) systems, forms-based authentication systems and negotiate HTTP Basic and NTLM authentications/authorizations. However, it can&rsquo;t substitute the need for a unified authentication process across all secure sources. Heterogeneous sources may require different sets of credentials which make the search experience painful for the end-user, having to authenticate multiple times when querying. Additionally, the appliance may not be able in certain cases to cope with
+      complex and non-standard authentication and/or authorization processes
+      which may put at risk the deployment of search technology. 
+    </p>
+    <p>
+      The GSA Valve Security Framework was designed to answer both of these
+      issues. It exposes a global authentication capability to the search user
+      and then loads transparently the sets of credentials that are relevant to
+      each indexed sources. It is a framework that can easily be extended to
+      support the specifics of new repositories in terms of authentication and
+      authorization processes. This authentication and authorization framework acts as a content proxy and can be considered as a quick, simple and low-cost alternative to a single sign-on (SSO) system. It can be integrated as well with third-party SSO solutions in those situations where the corporate SSO doesn&rsquo;t secure all the searchable applications. <br>
+    </p>
+    <h3>
+      Latest Changes
+    </h3>
+    <p>
+      <strong>Release 1.4 - Jan 07 2008</strong> </p>
+    <ul>
+      <li>Added support to Kerberos authentication </li>
+      <li> Added support for managing
+      Sessions in the Valve. It's also able to store cookies in the session </li>
+      <li> New deployment scenarios implemented in the Valve, including the
+      possibility to mix both Kerberos and non Kerberos authentication </li>
+      <li> New
+      Kerberos servlet that suports Kerberos native authentication </li>
+      <li>      Authenticate servlet supports now multiple credentials both for Kerberos
+      and Username/Password </li>
+      <li> The Valve configuration file has been extended to
+      support both Kerberos and Sessions </li>
+      <li> New package architecture that
+      organizes the authentication and authorization modules </li>
+      <li> LDAP
+      configuration have been moved to the configuration file. The same for
+      LDAPSSO.</li>
+      <li> New URL encoding processing compatible with Windows sources </li>
+      <li> Authentication Cookies obtained from the sources can be sent back to the
+      browser and/or stored in the session for further
+      authentication/authorization </li>
+      <li> New Credentials implementation managed
+      through a Vector </li>
+      <li> Root authentication is now independent from the
+      credentials, that have to be sent by a Credentials object </li>
+      <li> HTTPBasic and
+      Kerberos authorization now efficiently treats HEAD requests coming from
+      the GSAs </li>
+      <li> New utilities have been created to process files when
+      authorizing. These classes can be used by all the AuthN/AuthZ modules </li>
+      <li> More efficient non HTML file authorization processing. The processing is
+      made in memory by document blocks, instead opening the whole document </li>
+      <li> HTTPVisitor class now supports more processing cases </li>
+      <li> Multiple HTTP
+      connections support. The number of connections are now configurable in the
+      config file </li>
+    </ul>
+    <p><strong>Release 1.3.1 - Nov 22 2007 </strong></p>
+    <ul>
+      <li>Fixed problem of returning back to search
+        page after inital login at start of authN process. The valve first looks
+        for a referer header and if it exists and is a valid GGSA host it will
+        create a cookie At the point where the valve redirects back to the search
+      page it will do one of the following (in order)
+        <ul>
+          <li> Use the valve set in the
+            gsaRequestHost cookie if it exists </li>
+          <li> Look for a gsaHost parameter in the
+              search query sting </li>
+          <li> Use the first GSA host defined in the searchHosts
+                array in the valve configuration file</li>
+        </ul>
+      </li>
+      <li>Version number of the build now
+      including in the name of the valve.jar (valve_${version}.jar) </li>
+    </ul>
+    <p><strong>Release 1.3 - Oct 28
+        2007 </strong></p>
+    <ul>
+      <li>Added support to configure the valves authN and authZ classes via an
+            xml configuration file. </li>
+      <li>Added support for multiple GSAs using the same
+            Valve Security Framework&nbsp; <br>
+    </li>
+    </ul>
+	<h3>Application Deployment </h3>
+    <p>GSA Valve Security Framework is a standard Java web application thatresides with an application server, in this case Tomcat and in configured as a Valve (filter) within Tomcat, hence its name. A Valve element within Tomcat represents a component that will be inserted into the request processing pipeline for the associated Catalina container (Engine, Host, or Context). Individual Valves have distinct processing capabilities, and in this case its main function is to evaluate a user&rsquo;s permission to access a piece of content. It has been tested on Tomcat but theoretically it can run on any standard J2EE web container.</p>
+    <p>The Tomcat version you can use has to be 5.5 release or upwards. It's recommended to use JDK 1.6.X as some of the features are better implemented with this version, but you would be able to use JDK 1.5.X as well if you're not making use of the Kerberos features. </p>
+    <p>The application  uses some external open source libraries, most of them are Apache ones, that you have to download them before you deploy it. These libraries are:</p>
+    <ul>
+      <li><em>Apache Log4J </em> (1.2.14 or upwards) &lt; <a href="http://logging.apache.org/log4j/">http://logging.apache.org/log4j/ </a>&gt; </li>
+      <li><em>Apache Jakarta RegExp </em> (1.5 or upwards) &lt; <a href="http://jakarta.apache.org/regexp/">http://jakarta.apache.org/regexp/ </a>&gt; </li>
+      <li><em>Apache Commons Httpclient </em> (3.0.1) &lt; <a href="http://hc.apache.org/">http://hc.apache.org/ </a>&gt; </li>
+      <li><em>Apache Commons Collections </em> (3.2 or upwards) &lt; <a href="http://commons.apache.org/collections/">http://commons.apache.org/collections/ </a>&gt; </li>
+      <li><em>Apache Commons EL </em> (1.0) &lt; <a href="http://commons.apache.org/el/">http://commons.apache.org/el/ </a>&gt; </li>
+      <li><em>Apache Xerces </em>(2.9.0) &lt; <a href="http://xerces.apache.org/xerces2-j/">http://xerces.apache.org/xerces2-j/ </a>&gt; </li>
+      <li><em>Apache Commons Digester </em> (1.8 or upwards) &lt; <a href="http://commons.apache.org/digester/">http://commons.apache.org/digester/ </a>&gt; </li>
+      <li><em>Apache Commons BeanUtils </em> (1.7 or upwards): &lt; <a href="http://commons.apache.org/beanutils/">http://commons.apache.org/beanutils/ </a>&gt; </li>
+      <li><em>Apache Commons Codec </em> (1.3) &lt; <a href="http://commons.apache.org/codec/">http://commons.apache.org/codec/ </a>&gt; </li>
+      <li><em>Html Parser </em> (1.6) &lt; <a href="http://htmlparser.sourceforge.net/">http://htmlparser.sourceforge.net/ </a>&gt; </li>
+      <li><em>JDom </em> (1.1) &lt; <a href="www.jdom.org">www.jdom.org </a>&gt; </li>
+    </ul>
+    <p>It also uses some Google libraries that offer some external functionality. You can find them in the code repository:</p>
+    <ul>
+      <li><em>GSA Valve Kerberos libraries </em>: Kerberos implementation for SPNEGO services in the Valve &lt;ValveKrb5.jar&gt; </li>
+      <li><em>GSA Valve Session libraries </em>: Valve session managements &lt;ValveSessions.jar&gt; </li>
+      <li><em>Sniffer </em> (1.3): Http libraries that act as a standard browser &lt;Sniffer.jar or Sniffer_1.3.jar&gt; </li>
+    </ul>
+    <p>Other libraries would be needed if they are used in the custom connectors, for example if you're using LiveLink then you should include the LiveLink API (lapi.jar)</p>
+    <p>Libraries have to be deployed at the following locations (except Valve Session library that should be deploy at $CATALINA_HOME/common/lib):</p>
+    <ul>
+      <li>$CATALINA_HOME/server/libs</li>
+      <li>$CATALINA_HOME/webapps/valve/WEB_INF/libs </li>
+    </ul>
+    <p>As a result of the project built (you can use the Ant's build.xml) then you'll have a zip file that contains the following directories which already exist in Tomcat that have to be copy at CATALINA_HOME:</p>
+    <ul>
+      <li>common</li>
+      <li>server</li>
+      <li>webapps</li>
+    </ul>
+    <p>Finally the Tomcat instance has to be configured to process the Valve. Add the following context to &lt;CATALINA_HOME&gt;/conf/server.xml<br>
+    <em>&lt;Valve className=&quot;com.google.gsa.Valve&quot; gsaValveConfigPath=&quot;{full path to valve configuration file}&quot;/&gt;</em></p>
+    <p>The configuration is driven by a flexible XML file where you can define tons of different repositories and architecture. A typical valve configuration file path is at $CATALINA_HOME/classes/gsaValveConfig.xml </p>
+    <p>You can find more information on how to install and configure this application at the Installation and Configuration guide. There are also some other documents on specific Valve configuration tasks. </p>
+</body>
+</html>
