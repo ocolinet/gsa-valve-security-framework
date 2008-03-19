@@ -61,6 +61,8 @@ public class HTTPBasicAuthorizationProcess implements AuthorizationProcessImpl {
         //Max Connections
         private int maxConnectionsPerHost = -1;
         private int maxTotalConnections = -1;
+        //Range
+        private static final String rangeHeader = "bytes=0-0";
         
 	
 	public HTTPBasicAuthorizationProcess() {
@@ -121,7 +123,7 @@ public class HTTPBasicAuthorizationProcess implements AuthorizationProcessImpl {
 				if ((requestCookies[i].getName()).equals("gsa_basic_auth") ) {
 					if (requestCookies[i].getValue() != null) {
 						logger.debug("gsa_basic_auth: " + requestCookies[i].getValue());
-						authHeader = new Header("Authorization", requestCookies[i].getValue());
+						authHeader = new Header("Authorization", setBasicAuthNChain(requestCookies[i].getValue()));
 					}
 				}				
 			}			
@@ -146,8 +148,9 @@ public class HTTPBasicAuthorizationProcess implements AuthorizationProcessImpl {
 		} else {
 		    
                         //is a Head request?
-                        boolean isHead = false;                           
-                        setHead (request, isHead);
+                        boolean isHead = isHead (request);
+                        logger.debug("isHead?: "+isHead);
+                        setHeaders ();
                                                  
 			// Protection
 			if (webProcessor != null) {
@@ -156,8 +159,13 @@ public class HTTPBasicAuthorizationProcess implements AuthorizationProcessImpl {
 				try {
 	
 					// Process authz request
-					
-					method = webProcessor.sendRequest(null, RequestType.GET_REQUEST, headers, null, url);					
+					String requestType = RequestType.GET_REQUEST;
+                                        
+                                        if (isHead) {
+                                            requestType = RequestType.HEAD_REQUEST;
+                                        }
+                                        
+					method = webProcessor.sendRequest(null, requestType, headers, null, url);					
 
                                          // Protection
                                          if (method != null) {
@@ -208,12 +216,10 @@ public class HTTPBasicAuthorizationProcess implements AuthorizationProcessImpl {
 		
 	}
         
-        public void setHead (HttpServletRequest request, boolean isHead) {
-            
-            int numHeaders = 2;
-                                                       
-            String range = request.getParameter("Range");
-            logger.debug("Range Parameter: "+range);
+        public boolean isHead (HttpServletRequest request) {
+            boolean isHead = false;
+            String range = request.getHeader("Range");
+            logger.debug("Range Header: "+range);
                                                                                
             if (request.getMethod().equals(RequestType.HEAD_REQUEST)) {
                 isHead = true;
@@ -221,25 +227,35 @@ public class HTTPBasicAuthorizationProcess implements AuthorizationProcessImpl {
                 if (range != null) {
                     if (range.contains("0-0")) {
                         isHead = true;
-                        numHeaders = 3;
                     }
                 }
             }
-                                                       
-            if (numHeaders == 2) {
-                //Set HTTP headers
-                headers = new Header[2];
-                // Set User-Agent
-                headers[0] = new Header("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) Gecko/20061010 Firefox/2.0");          
-                headers[1] = authHeader;
-            } else {
-                //Set HTTP headers
-                headers = new Header[3];
-                // Set User-Agent
-                headers[0] = new Header("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) Gecko/20061010 Firefox/2.0");
-                headers[1] = authHeader;
-                headers[2] = new Header("Range", range);
+            return isHead;
+        }
+        
+        public void setHeaders () {
+            
+            int numHeaders = 2;         
+                                                  
+            //Set HTTP headers
+            headers = new Header[numHeaders];
+            // Set User-Agent
+            headers[0] = new Header("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) Gecko/20061010 Firefox/2.0");          
+            headers[1] = authHeader;
+            
+        }
+        
+        public String setBasicAuthNChain (String basic) {
+            String authNChain = "";
+            String basicMsg = "Basic ";
+        
+            logger.debug("Basic is: "+basic);
+            if ((!basic.equals(null))&&(!basic.equals(""))) {
+                //treat basic chain and just get the chain
+                authNChain = basicMsg + basic;
             }
+        
+            return authNChain;
         }
 	
 

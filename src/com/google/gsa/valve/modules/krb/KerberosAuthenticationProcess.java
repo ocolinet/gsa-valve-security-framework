@@ -68,7 +68,7 @@ public class KerberosAuthenticationProcess implements AuthenticationProcessImpl 
 
     //Vars
     private final static String COOKIE_NAME = "gsa_krb5_auth";
-    private Logger logger = null;
+    private static Logger logger = null;
     
     //Config
     private ValveConfiguration valveConf;
@@ -105,6 +105,9 @@ public class KerberosAuthenticationProcess implements AuthenticationProcessImpl 
     
     //This indicates if we are using Negotiation or just reuse username and passwords
     private boolean isNegotiate = false; 
+    
+    //Cookie Max Age
+    private int authMaxAge = -1;
     
     
     public KerberosAuthenticationProcess(boolean isNegotiate) {
@@ -211,6 +214,12 @@ public class KerberosAuthenticationProcess implements AuthenticationProcessImpl 
         }
         catch (NullPointerException e) {
             logger.debug("Krb subject does not exist. Continue with the process...");
+        }                
+        
+        try { 
+            authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());                
+        } catch(NumberFormatException nfe) {
+            logger.error ("Configuration error: check the configuration file as the number set for authMaxAge is not OK:");
         }
         
         
@@ -510,7 +519,7 @@ public class KerberosAuthenticationProcess implements AuthenticationProcessImpl 
         return new String (new Long(mills).toString());
     }
     
-    public String getPrincipalStr (Subject subject) {        
+    public static String getPrincipalStr (Subject subject) {        
         
         String principal = null;        
         
@@ -536,35 +545,33 @@ public class KerberosAuthenticationProcess implements AuthenticationProcessImpl 
     public void createCookie (HttpServletRequest request, HttpServletResponse response) {                
         
         logger.debug("Creating the Kerberos Authn cookie");
-        
-        try {
-            // Instantiate authentication cookie with default value
-            gsaKrbAuthCookie = new Cookie(COOKIE_NAME, (new UserIDEncoder()).getID(getUsername(), System.currentTimeMillis()));
+                
+        // Instantiate authentication cookie with default value
+        gsaKrbAuthCookie = new Cookie(COOKIE_NAME, (new UserIDEncoder()).getID(getUsername(), System.currentTimeMillis()));
                                                  
-            // Set cookie domain
-            gsaKrbAuthCookie.setDomain(valveConf.getAuthCookieDomain());
+        // Set cookie domain
+        gsaKrbAuthCookie.setDomain(valveConf.getAuthCookieDomain());
             
-            // Set cookie path
-            gsaKrbAuthCookie.setPath(valveConf.getAuthCookiePath());
+        // Set cookie path
+        gsaKrbAuthCookie.setPath(valveConf.getAuthCookiePath());
+        
+        // Set cookie max age
+        gsaKrbAuthCookie.setMaxAge(authMaxAge);
             
-            // Debug
-            if (logger.isDebugEnabled()) logger.debug("Kerb Auth cookie set");
+        // Debug
+        if (logger.isDebugEnabled()) logger.debug("Kerb Auth cookie set");
             
             
-            //CLAZARO: add sendCookies support
-            boolean isSessionEnabled = new Boolean (valveConf.getSessionConfig().isSessionEnabled()).booleanValue();
-            boolean sendCookies = false;
-            if (isSessionEnabled) {
-                sendCookies = new Boolean (valveConf.getSessionConfig().getSendCookies()).booleanValue();
-            }
-            if ((!isSessionEnabled)||((isSessionEnabled)&&(sendCookies))) {
-                response.addCookie(gsaKrbAuthCookie);
-            }
-
+        //add sendCookies support
+        boolean isSessionEnabled = new Boolean (valveConf.getSessionConfig().isSessionEnabled()).booleanValue();
+        boolean sendCookies = false;
+        if (isSessionEnabled) {
+            sendCookies = new Boolean (valveConf.getSessionConfig().getSendCookies()).booleanValue();
         }
-        catch (Exception e) {
-            logger.error("Error creating the cookie for kerberos: "+e.getMessage(),e);
+        if ((!isSessionEnabled)||((isSessionEnabled)&&(sendCookies))) {
+            response.addCookie(gsaKrbAuthCookie);
         }
+        
     }
     
     

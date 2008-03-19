@@ -78,7 +78,6 @@ public class Kerberos extends HttpServlet {
     long sessionTimeout;
     long sessionCleanup;
     boolean isSessionEnabled = false;
-    private UserIDEncoder userIDEncoder = new UserIDEncoder ();
     
     //Non Krb AuthN vars
     private String authenticationProcessClsName = null;
@@ -610,8 +609,9 @@ public class Kerberos extends HttpServlet {
                 // Instantiate the authorization process class
                 authenticationProcessCls = (AuthenticationProcessImpl) Class.forName(authenticationProcessClsName).newInstance();
                 
+                //setIsNegotiate: delete it
                 //set if it's set negotiate
-                authenticationProcessCls.setIsNegotiate(false);
+                //authenticationProcessCls.setIsNegotiate(false);
 
         } catch (InstantiationException e) {
 
@@ -672,7 +672,7 @@ public class Kerberos extends HttpServlet {
         long creationTime = System.currentTimeMillis();                                                 
                   
         // Instantiate authentication cookie with default value
-        gsaAuthCookie = new Cookie(authCookieName, userIDEncoder.getID(username, creationTime));
+        gsaAuthCookie = new Cookie(authCookieName, UserIDEncoder.getID(username, creationTime));
         
         // Set cookie domain
         gsaAuthCookie.setDomain(authCookieDomain);
@@ -936,6 +936,7 @@ public class Kerberos extends HttpServlet {
               
               //Session support: cleanup process
               if ((isSessionEnabled)||(isKerberos)) {
+                 logger.debug ("Getting sessionTimer instance");
                  sessionTimer = SessionTimer.getInstance(isSessionEnabled, isKerberos, sessionCleanup);
                  sessionTimer.setTimer();
               }

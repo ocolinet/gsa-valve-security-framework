@@ -20,6 +20,7 @@
  * 1.3.1.1 - Fix in rootAuthenticationProcess to return correct status code when no root repository defined
  * 
  * 1.4 - Valve with Kerberos and Sessions support
+ * 1.4.1 - Added Error Management
  */
 
 
@@ -51,11 +52,13 @@ import com.google.gsa.valve.configuration.ValveConfiguration;
 import com.google.gsa.valve.configuration.ValveConfigurationDigester;
 
 import com.google.gsa.sessions.nonValidSessionException;
+import com.google.gsa.valve.configuration.ValveConfigurationException;
+import com.google.gsa.valve.errormgmt.ErrorManagement;
 
 
 public class Valve extends ValveBase {
 
-	private static final String info = "com.google.gsa.Valve/1.4";		
+	private static final String info = "com.google.gsa.Valve/1.4.1";		
 	private static final String REFERER_COOKIE = "gsaReferer";
 	private static final String REQUESTGSA_COOKIE = "gsaRequestHost";
 
@@ -82,8 +85,12 @@ public class Valve extends ValveBase {
 	//The actual GSA that this request came from
 	private String requestGSA = null;
 	
-
+        //Valve configuration instance
 	private ValveConfiguration valveConf = null;
+        
+        //Error management instance
+        private ErrorManagement errorMngmt = null;
+        private String errorLocation = null;
         
         private String testFormsCrawlUrl = null;
                  
@@ -477,6 +484,39 @@ public class Valve extends ValveBase {
             }
             
         }
+        
+        public String getErrorLocation() {
+            return this.errorLocation;
+        }
+        
+        public void setErrorManagement (String errorLocation) {
+                
+            if (errorMngmt == null) {    
+                
+                logger.debug("Setting errorLocation: " + errorLocation);            
+            
+                // Cache value
+                this.errorLocation = errorLocation;
+            
+                // Protection
+                if ((this.errorLocation == null) || (this.errorLocation.equals(""))) {
+
+                    // Log error
+                    logger.error("Valve parameter [errorLocation] has not been set correctly");
+                
+                    // Set flag
+                    isActive = false;
+                
+                } else {
+                    try {
+                        errorMngmt = new ErrorManagement (errorLocation);
+                    } catch (ValveConfigurationException e) {
+                        logger.error ("Error Location was not properly setup in the config file: "+e);
+                    }
+                }
+            }
+        
+        }
     
         	
         public Vector getSearchHosts() {
@@ -560,9 +600,9 @@ public class Valve extends ValveBase {
 				if (logger.isDebugEnabled()) logger.debug("Filtered URL: [" + url  + "]");
 
 				// Process request
-				System.out.println("Before filter match");
+				logger.debug("Before filter match");
 				getNext().invoke(request, response);
-				System.out.println("After filter match");
+				logger.debug("After filter match");
 				
 				// Return
 	 			return;
@@ -757,8 +797,10 @@ public class Valve extends ValveBase {
 						if (logger.isDebugEnabled()) logger.debug("Launching the authorization process");
 
 						try {
+                                                                //Set default value
+                                                                statusCode = HttpServletResponse.SC_UNAUTHORIZED;
 							
-//								Retrieve cookies
+								//Retrieve cookies
 								cookies = response.getCookies();
 								if (cookies != null) {
 									//Log out the cookies 
@@ -779,7 +821,12 @@ public class Valve extends ValveBase {
 								
                                                                 //Changing the id to null
                                                                 statusCode = authorizationProcessCls.authorize(request, response, response.getCookies(), gsaRefererCookie.getValue(), null);
-								
+                                                                
+                                                                //set the status code that is coming from the AuthZ
+                                                                response.setStatus(statusCode);
+                                                                
+                                                                logger.debug("Response status code is: "+statusCode);
+                                                                								
 								cookies = response.getCookies();
 								if (cookies != null) {
 									//Log out the cookies 
@@ -789,71 +836,42 @@ public class Valve extends ValveBase {
 								}
 						
                                                 } catch (nonValidSessionException nvE) {
+                                                    
+                                                    logger.debug ("Non valid session. Proceeding to logout");
                                                                                                          
+                                                    logout (request, response);
                                                                                                          
-                                                    //Delete Valve Auth cookies
-                                                    Cookie[] allCookies = request.getCookies();                        
-                                                    // Protection
-                                                    if (allCookies != null) {
-                                                                                                                  
-                                                        // Look for the authentication cookie
-                                                        for (int i = 0; i < allCookies.length; i++) {
-                                                                                                                          
-                                                            logger.debug("Cookie: "+allCookies[i].getName());
-                                                                                                                          
-                                                            //look for all the cookies start with "gsa" and delete them
-                                                            if ((allCookies[i].getName()).startsWith("gsa")) {
-                                                                                                                                  
-                                                                Cookie gsaCookie = new Cookie (allCookies[i].getName(), allCookies[i].getValue());
-                                                                                                                                  
-                                                                                                                                  
-                                                                //the next lines have been added for IE support                                                                                 
-                                                                                                                                  
-                                                                gsaCookie.setDomain(authCookieDomain);
-                                                                gsaCookie.setPath(authCookiePath);
-                                                                                                                                                                                          
-                                                                                                                                 
-                                                                //Set max age to cero 
-                                                                gsaCookie.setMaxAge(0);
-                                                                                                                                 
-                                                                response.addCookie(gsaCookie);
-
-                                                                // Debug
-                                                                if (logger.isDebugEnabled()) logger.debug("GSA cookie: [" + gsaCookie.getName() + " has been deleted ]");
-                                                                                                                                  
-                                                            } 
-                                                                                                                  
-                                                        }
-
-                                                    }
-                                                                                                         
-                                                    statusCode = HttpServletResponse.SC_UNAUTHORIZED;                                                        
+                                                    statusCode = HttpServletResponse.SC_UNAUTHORIZED;     
+                                                    
+                                                    logger.debug ("Setting the error code to: "+statusCode);
+                                                    response.setStatus(statusCode);
                                                                                                          
                                                                                                                                              
                                                 } catch(Exception e) {
 
                                                     // Debug
                                                     logger.error("Authorization process raised exception: " + e.getMessage(),e);
-                                                    e.printStackTrace(); 
+                                                    //e.printStackTrace(); 
                                                     if (statusCode == 0) {
                                                         statusCode = HttpServletResponse.SC_UNAUTHORIZED;
                                                     }
+                                                    
+                                                    logger.debug ("Setting the error code to: "+statusCode);
+                                                    response.setStatus(statusCode);
                                                                                                          
                                                 }
 
 						// Protection
-						if (statusCode == HttpServletResponse.SC_UNAUTHORIZED) {
-							
-							// Raise error
-							response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authorization process failed!");
-							
-							// Debug
-							if (logger.isDebugEnabled()) logger.debug("Authorization process failed");
-							
-							// Return
-							return;
-							
-						}
+                                                if (statusCode != HttpServletResponse.SC_OK) {
+                                                    
+                                                    //Send personalized error message (if any)
+                                                    if (errorMngmt != null) {
+                                                        errorMngmt.showHTMLError(response, errorMngmt.processError(statusCode));
+                                                    } else {
+                                                        logger.error ("AuthZ error message couldn't be shown as the ErrorMessage instance does not exist");
+                                                    }
+                                                                                                       
+                                                }
 						
 						// Debug
 						if (logger.isDebugEnabled()) logger.debug("Authorization process completed");
@@ -897,7 +915,8 @@ public class Valve extends ValveBase {
 					
         			// Launch the authorization process for this domain
 				statusCode = authorizationProcessCls.authorize(request, response, response.getCookies(), url, "root");
-					
+				
+                                response.setStatus(statusCode);	
 				
 			} catch(Exception e) {
 
@@ -905,23 +924,25 @@ public class Valve extends ValveBase {
 				logger.error("Authorization process raised exception: " + e.getMessage(),e);
 				
 			} 
-
+                                                
 			// Protection
-			if (statusCode == HttpServletResponse.SC_UNAUTHORIZED) {
-				
-				// Raise error
-				response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authorization process failed!");
-				
-				// Debug
-				if (logger.isDebugEnabled()) logger.debug("Authorization process failed");
-				
-				// Return
-				return;
-				
-			}
+                        if (statusCode != HttpServletResponse.SC_OK) {
+                            
+                            //Send personalized error message (if any)
+                            if (errorMngmt != null) {
+                                errorMngmt.showHTMLError(response, errorMngmt.processError(statusCode));
+                            } else {
+                                logger.error ("AuthZ error message couldn't be shown as the ErrorMessage instance does not exist");
+                            }
+                            
+                            if (logger.isDebugEnabled()) logger.debug("Authorization process is distinct to 200 with error code: "+statusCode);
+                            
+                            return;
+                                                        
+                        }
 
 			// Debug
-			if (logger.isDebugEnabled()) logger.debug("Authorization process successful");
+			if (logger.isDebugEnabled()) logger.debug("Authorization process completed");
 			
 			// Perform the request
 			logger.debug("Before perform request");
@@ -1211,8 +1232,52 @@ public class Valve extends ValveBase {
                 setIsSessionEnabled (new Boolean (valveConf.getSessionConfig().isSessionEnabled()).booleanValue());
                 setTestFormsCrawlUrl (valveConf.getTestFormsCrawlUrl());
                 
-	}
-
-	
+                setErrorManagement (valveConf.getErrorLocation());
+                
+	}        
+        
+        public void logout (HttpServletRequest request, HttpServletResponse response) {
+            //Delete Valve Auth cookies
+            Cookie[] allCookies = null;
+            // Protection
+            try {
+                allCookies = request.getCookies();
+                if (allCookies != null) {
+                                                                              
+                    // Look for the authentication cookie
+                    for (int i = 0; i < allCookies.length; i++) {
+                                                                                      
+                        logger.debug("Cookie: "+allCookies[i].getName());
+                                                                                      
+                        //look for all the cookies start with "gsa" and delete them
+                        if ((allCookies[i].getName()).startsWith("gsa")) {
+                                                                                              
+                            Cookie gsaCookie = new Cookie (allCookies[i].getName(), allCookies[i].getValue());
+                                                                                              
+                                                                                              
+                            //the next lines have been added for IE support                                                                                 
+                                                                                              
+                            gsaCookie.setDomain(authCookieDomain);
+                            gsaCookie.setPath(authCookiePath);
+                                                                                                                                                      
+                                                                                             
+                            //Set max age to cero 
+                            gsaCookie.setMaxAge(0);
+                                                                                             
+                            response.addCookie(gsaCookie);
+    
+                            // Debug
+                            if (logger.isDebugEnabled()) logger.debug("GSA cookie: [" + gsaCookie.getName() + " has been deleted ]");
+                                                                                              
+                        } 
+                                                                              
+                    }
+    
+                }
+            }
+            catch (Exception e) {
+                logger.error ("Exception during logout process: "+e);
+            }
+        }
 
 }

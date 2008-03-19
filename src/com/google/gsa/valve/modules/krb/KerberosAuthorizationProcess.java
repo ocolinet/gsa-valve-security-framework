@@ -72,6 +72,8 @@ public class KerberosAuthorizationProcess implements AuthorizationProcessImpl {
         //Config
         private ValveConfiguration valveConf;
         
+        //Range
+        private static final String rangeHeader = "bytes=0-0";        
         
 	public KerberosAuthorizationProcess() {
 		//Instantiate logger
@@ -153,18 +155,23 @@ public class KerberosAuthorizationProcess implements AuthorizationProcessImpl {
 		
 		} else {                                                               
 		                            
-                        //is a Head request?
-                        boolean isHead = false;                                                                        
-		          
-                        setHead (request, isHead);  
+                        boolean isHead = isHead (request);
+                        logger.debug("isHead?: "+isHead);
+                        setHeaders ();
                         
 			// Protection
 			if (webProcessor != null) {
 				
 				// Protection
 				try {
+                                        // Process authz request
+                                        String requestType = RequestType.GET_REQUEST;
+				    
+                                        if (isHead) {
+                                            requestType = RequestType.HEAD_REQUEST;
+                                        }
                                                                                                            
-                                         method = webProcessor.sendRequest(credentials, request.getMethod(), headers, null, url);                                                                                                                         
+                                         method = webProcessor.sendRequest(credentials, requestType, headers, null, url);                                                                                                                         
                                         
                                          // Protection
                                          if (method != null) {
@@ -215,12 +222,10 @@ public class KerberosAuthorizationProcess implements AuthorizationProcessImpl {
 		
 	}
         
-    public void setHead (HttpServletRequest request, boolean isHead) {
-        
-        int numHeaders = 1;
-                                                   
-        String range = request.getParameter("Range");
-        logger.debug("Range Parameter: "+range);
+    public boolean isHead (HttpServletRequest request) {
+        boolean isHead = false;
+        String range = request.getHeader("Range");
+        logger.debug("Range Header: "+range);
                                                                            
         if (request.getMethod().equals(RequestType.HEAD_REQUEST)) {
             isHead = true;
@@ -228,23 +233,21 @@ public class KerberosAuthorizationProcess implements AuthorizationProcessImpl {
             if (range != null) {
                 if (range.contains("0-0")) {
                     isHead = true;
-                    numHeaders = 2;
                 }
             }
         }
-                                                   
-        if (numHeaders == 1) {
-            //Set HTTP headers
-            headers = new Header[1];
-            // Set User-Agent
-            headers[0] = new Header("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) Gecko/20061010 Firefox/2.0");          
-        } else {
-            //Set HTTP headers
-            headers = new Header[2];
-            // Set User-Agent
-            headers[0] = new Header("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) Gecko/20061010 Firefox/2.0");
-            headers[1] = new Header("Range", range);
-        }
+        return isHead;
+    }
+    
+    public void setHeaders () {
+        
+        int numHeaders = 1;
+        
+        //Set HTTP headers
+        headers = new Header[numHeaders];
+        // Set User-Agent
+        headers[0] = new Header("User-Agent", "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1) Gecko/20061010 Firefox/2.0"); 
+        
     }
 	
 }

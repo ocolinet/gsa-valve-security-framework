@@ -196,7 +196,8 @@ public class RootAuthenticationProcess implements AuthenticationProcessImpl {
                                                 //Krb settings
                                                 boolean isKrbAuthNProcess = false;
                                                 if (isKerberos) {
-                                                    authProcess.setIsNegotiate(isNegotiate); 
+                                                    //setIsNegotiate: delete it
+                                                    //authProcess.setIsNegotiate(isNegotiate); 
                                                     //check if it's a Kerberos AuthN process
                                                     logger.debug("authProcess class is: "+authProcess.getClass().getName());
                                                     if (authProcess.getClass().getName().equals (KRB_AUTHN_PROCESS)) {

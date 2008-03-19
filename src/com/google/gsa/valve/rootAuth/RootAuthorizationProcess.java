@@ -97,9 +97,22 @@ public class RootAuthorizationProcess implements AuthorizationProcessImpl {
 		boolean patternMatch = false;
                 boolean rootIDExists = false;
 	        String internalURL = null;
+                
+                //initialize vars
+                userSession = null;
+                isKerberos = false;
+                isSessionEnabled = false;
 
                 //Encoding support
-                String newURL = URLDecoder.decode(url, ENCODING);                    
+                String newURL = null;
+                
+                try {
+                    newURL = URLDecoder.decode(url, ENCODING);                                        
+                }
+                catch (IllegalArgumentException e) {
+                    logger.error ("Illegal Argument when decoding/encoding URL");
+                    newURL = url;
+                }
                 URLUTF8Encoder encoder = new URLUTF8Encoder ();
                 url = encoder.encodeURL(new URL(newURL));
                 
@@ -207,21 +220,33 @@ public class RootAuthorizationProcess implements AuthorizationProcessImpl {
 					patternMatch = true;
                                         
                                         //Krb support
-                                        if (isKerberos) {
-                                            if (doesKrbSubjectExist()) {
-                                                Credentials creds = new Credentials ();
-                                                Credential krbCred = new Credential (KRB5_ID);
-                                                krbCred.setKrbSubject(userSession.getKerberosCredentials());
-                                                creds.add(krbCred);
-                                                authZProcess.setCredentials(creds);                                                
-                                            } else {
-                                                logger.error("User does not have proper credentials [Krb]");
-                                                return HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                                        try {
+                                            logger.debug ("Check if it's Kerberos");
+                                            if (isKerberos) {
+                                                Subject krbTicket = doesKrbSubjectExist(userSession);
+                                                if (krbTicket != null) {
+                                                    Credentials creds = new Credentials ();
+                                                    Credential krbCred = new Credential (KRB5_ID);
+                                                    krbCred.setKrbSubject(krbTicket);
+                                                    creds.add(krbCred);
+                                                    //protection
+                                                    if (authZProcess != null) {
+                                                        authZProcess.setCredentials(creds);                                                
+                                                    }
+
+                                                } else {
+                                                    logger.error("User does not have proper credentials [Krb]");
+                                                    return HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+                                                }
                                             }
+                                        }
+                                        catch (Exception e) {
+                                            logger.error("Error during Kerberos authZ treatment : "+e.getMessage(),e);
                                         }
                                         
 					try {
-                                            statusCode = authZProcess.authorize(request, response, authCookies, url, repository.getId());
+					    String repoID = repository.getId();
+                                            statusCode = authZProcess.authorize(request, response, authCookies, url, repoID);
 					} catch (Exception e) {
 						logger.error("Error during authorization: "+e.getMessage(),e);
 					}
@@ -248,43 +273,49 @@ public class RootAuthorizationProcess implements AuthorizationProcessImpl {
 	
 	public void setValveConfiguration(ValveConfiguration valveConf) {
 		
-		logger.debug("Setting Valve Configuration");
-                
-                this.valveConf = valveConf;
-		
-		//Instantiate each of the repositories defined in the configuration
-		authorizationImplementations = new AuthorizationProcessImpl[valveConf.getRepositoryCount()];
-		
-		String repositoriyIds[] = valveConf.getRepositoryIds(); 
-			
-		ValveRepositoryConfiguration repository = null;
-                
-                logger.debug("Reading repositories");
-                
-		for(int i = 0; i < repositoriyIds.length; i++) {
-				try {
-					repository = valveConf.getRepository(repositoriyIds[i]);
-					if (repository.getAuthZ() == null || repository.getAuthZ().equals("")) {
-						logger.info("No authZ defined for " + repository.getId());
-					} else {
-						logger.info("Initialising authorisation process for " + repository.getId());
-						authorizationImplementations[i] = (AuthorizationProcessImpl) Class.forName(repository.getAuthZ()).newInstance();
-						authorizationImplementations[i].setValveConfiguration(valveConf);
-					}
-				
-				} catch (LinkageError le) {
-					logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-LinkageError]: " + le.getMessage(),le);					
-				} catch (InstantiationException ie) {
-					logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-InstantiationException]: " + ie.getMessage(),ie);					
-				} catch (IllegalAccessException iae) {
-					logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-IllegalAccessException]: " + iae.getMessage(),iae);
-				} catch (ClassNotFoundException cnfe) {
-					logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-ClassNotFoundException]: " + cnfe.getMessage(),cnfe);
-				} catch (Exception e) {
-					logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-Exception]: " + e.getMessage(),e);
-				}
-			}	
-		logger.debug(RootAuthorizationProcess.class.getName() + " initialiation complete");
+                //if (this.valveConf == null) {
+                    logger.debug("Setting Valve Configuration");
+                    
+                    this.valveConf = valveConf;
+                    
+                    //Instantiate each of the repositories defined in the configuration
+                    authorizationImplementations = new AuthorizationProcessImpl[valveConf.getRepositoryCount()];
+                    
+                    String repositoriyIds[] = valveConf.getRepositoryIds(); 
+                            
+                    ValveRepositoryConfiguration repository = null;
+                    
+                    logger.debug("Reading repositories");
+                    
+                    for(int i = 0; i < repositoriyIds.length; i++) {
+                                    try {
+                                            repository = valveConf.getRepository(repositoriyIds[i]);
+                                            if (repository.getAuthZ() == null || repository.getAuthZ().equals("")) {
+                                                    logger.info("No authZ defined for " + repository.getId());
+                                            } else {
+                                                    logger.debug("Initialising authorisation process for " + repository.getId());
+                                                    String authZComponent = repository.getAuthZ();
+                                                    logger.debug ("Authorization module is: "+authZComponent);
+                                                    if (authZComponent != null) {
+                                                        authorizationImplementations[i] = (AuthorizationProcessImpl) Class.forName(authZComponent).newInstance();
+                                                        authorizationImplementations[i].setValveConfiguration(valveConf);
+                                                    }
+                                            }
+                                    
+                                    } catch (LinkageError le) {
+                                            logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-LinkageError]: " + le.getMessage(),le);					
+                                    } catch (InstantiationException ie) {
+                                            logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-InstantiationException]: " + ie.getMessage(),ie);					
+                                    } catch (IllegalAccessException iae) {
+                                            logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-IllegalAccessException]: " + iae.getMessage(),iae);
+                                    } catch (ClassNotFoundException cnfe) {
+                                            logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-ClassNotFoundException]: " + cnfe.getMessage(),cnfe);
+                                    } catch (Exception e) {
+                                            logger.error(repository.getId() + " - Can't instantiate class [AuthorizationProcess-Exception]: " + e.getMessage(),e);
+                                    }
+                            }	
+                    logger.debug(RootAuthorizationProcess.class.getName() + " initialiation complete");
+                //}
 	}
         
         //CLAZARO:Session methods
@@ -394,19 +425,16 @@ public class RootAuthorizationProcess implements AuthorizationProcessImpl {
              userSession.setSessionLastAccessTime(currentTime);
          }
          
-        public boolean doesKrbSubjectExist () {
-            boolean doesKrbSubjExist = false;
+        public Subject doesKrbSubjectExist (UserSession userSession) {
+            
+            Subject krbSubject = null;
             //get Krb ticket from session
             if (userSession == null) {
                 logger.error("User session is null");                
             } else {                
-                if (userSession.getKerberosCredentials() == null) {
-                    logger.error ("User session exists but does not contain the Krb ticket");
-                } else {
-                    doesKrbSubjExist = true;
-                }
+                krbSubject = userSession.getKerberosCredentials();
             }
-            return doesKrbSubjExist;
+            return krbSubject;
         }
 	
 }

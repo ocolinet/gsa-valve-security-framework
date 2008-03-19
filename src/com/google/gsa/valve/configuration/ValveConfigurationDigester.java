@@ -63,6 +63,7 @@ public class ValveConfigurationDigester {
                         digester.addBeanPropertySetter( "GSAValveConfiguration/maxConnectionsPerHost", "maxConnectionsPerHost" );
                         digester.addBeanPropertySetter( "GSAValveConfiguration/maxTotalConnections", "maxTotalConnections" );
                         digester.addBeanPropertySetter( "GSAValveConfiguration/testFormsCrawlUrl", "testFormsCrawlUrl" );                       
+                        digester.addBeanPropertySetter( "GSAValveConfiguration/errorLocation", "errorLocation" );
 			
                         //Call Method addSearchHost that takes a single parameter
                         digester.addCallMethod("GSAValveConfiguration/searchHost","addSearchHost", 1);
@@ -88,9 +89,8 @@ public class ValveConfigurationDigester {
                         digester.addSetProperties("GSAValveConfiguration/sessions", "isSessionEnabled", "isSessionEnabled" );
                         digester.addSetProperties("GSAValveConfiguration/sessions", "sessionTimeout", "sessionTimeout" );
                         digester.addSetProperties("GSAValveConfiguration/sessions", "sessionCleanup", "sessionCleanup" );
-                        digester.addSetProperties("GSAValveConfiguration/sessions", "sendCookies", "sendCookies" );
-                                                
-                        digester.addSetNext( "GSAValveConfiguration/sessions", "setSessionConfig" );
+                        digester.addSetProperties("GSAValveConfiguration/sessions", "sendCookies", "sendCookies" );                                                
+                        digester.addSetNext( "GSAValveConfiguration/sessions", "setSessionConfig" );                                                
 
 			
 			digester.addObjectCreate( "GSAValveConfiguration/repository", 

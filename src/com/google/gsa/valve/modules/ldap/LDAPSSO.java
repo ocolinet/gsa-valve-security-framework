@@ -59,14 +59,20 @@ public class LDAPSSO implements AuthenticationProcessImpl{
     private static final int NB_AUTH_COOKIES = 1;
     private static final String SSO_COOKIE_NAME = "gsa_ldap_auth";
     
+    //Cookie Max Age
+    private int authMaxAge = -1;
+    
 	public LDAPSSO() {
 		logger = Logger.getLogger(LDAPSSO.class);
 		
 	}
         
+        //setIsNegotiate: delete it        
+        /*
         public void setIsNegotiate (boolean isNegotiate) { 
             //do nothing
         }
+        */
 	
         public void setValveConfiguration(ValveConfiguration valveConf) {
             this.valveConf = valveConf;
@@ -151,6 +157,12 @@ public class LDAPSSO implements AuthenticationProcessImpl{
                 // Return
                 return statusCode;
                 
+        }
+        
+        try { 
+            authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());                
+        } catch(NumberFormatException nfe) {
+            logger.error ("Configuration error: check the configuration file as the number set for authMaxAge is not OK:");
         }
         
         
@@ -240,6 +252,7 @@ public class LDAPSSO implements AuthenticationProcessImpl{
             // Set extra cookie parameters
             extAuthCookie.setDomain(authCookieDomain);
             extAuthCookie.setPath(authCookiePath);
+            extAuthCookie.setMaxAge(authMaxAge);
                     
             // Log info
             logger.debug("Adding cookie: " + extAuthCookie.getName() + ":" + extAuthCookie.getValue() 
@@ -310,10 +323,12 @@ public class LDAPSSO implements AuthenticationProcessImpl{
                 String id = repositories.elementAt(i);
                 logger.debug("ID ["+id+"] found at position #"+i);
                 
-                LDAPAttrRepository attrRepository = ldapAttributes.get(id);
+                LDAPAttrRepository attrRepository;
                 
                 //fetch credentials
                  try {
+                     attrRepository = ldapAttributes.get(id);
+                    
                      //Get User's DN
                      String userDName = ldapconn.getDN(username,ctx);
                                           
@@ -323,17 +338,18 @@ public class LDAPSSO implements AuthenticationProcessImpl{
                      if (!usernameAttr.equals(null)) {
                          logger.debug("UserName id["+id+"]: " + usernameAttr);
                          passwordAttr = ldapconn.getAttributeByDN(attrRepository.getPasswordAttr(),userDName,ctx);                            
-                     }
-                             
-                     
-                     //add the DCTM credentials into the "creds" object
-                     logger.debug("LDAP credentials were acquired OK. Adding them into the credential container");
-                     Credential credAttr = new Credential (id);
-                     credAttr.setUsername(usernameAttr);
-                     credAttr.setPassword(passwordAttr);
-                     creds.add(credAttr);
-                 }
-                 catch (Exception e) {
+                         //add the credentials into the "creds" object
+                         logger.debug("LDAP credentials were acquired OK. Adding them into the credential container");
+                         Credential credAttr = new Credential (id);
+                         credAttr.setUsername(usernameAttr);
+                         credAttr.setPassword(passwordAttr);
+                         creds.add(credAttr);
+                     } else {
+                         logger.debug("Credentials for "+id+" were not found for the user "+username);
+                     }                           
+                 } catch (NullPointerException e) {                        
+                     logger.warn ("NullPointerException when fetching attrs in the LDAP. Probably due to the user does not have those attrs");
+                 } catch (Exception e) {
                      logger.error ("Exception fetching LDAP attributes: "+e.getMessage(),e);
                  }
                 

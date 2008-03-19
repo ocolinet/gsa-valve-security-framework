@@ -50,10 +50,13 @@ public class HTTPNoAuthenticationProcess implements AuthenticationProcessImpl {
 		logger = Logger.getLogger(HTTPNoAuthenticationProcess.class);
 		
 	}
-	
+        
+        //setIsNegotiate: delete it
+        /*
         public void setIsNegotiate (boolean isNegotiate) { 
             //do nothing
         }
+        */
         
         public void setValveConfiguration(ValveConfiguration valveConf) {
             this.valveConf = valveConf;
@@ -145,15 +148,23 @@ public class HTTPNoAuthenticationProcess implements AuthenticationProcessImpl {
         		
         	
                         String authCookieDomain = null;
-			String authCookiePath = null;
+			String authCookiePath = null;                        
+                        int authMaxAge = -1;
 			
 			// Cache cookie properties
 			authCookieDomain = (request.getAttribute("authCookieDomain")).toString();
 			authCookiePath = (request.getAttribute("authCookiePath")).toString();
-			
+                        //authMaxAge
+                        try { 
+                            authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());                
+                        } catch(NumberFormatException nfe) {
+                            logger.error ("Configuration error: check the configuration file as the number set for authMaxAge is not OK:");
+                        }
+                        
 			// Set extra cookie parameters
 			extAuthCookie.setDomain(authCookieDomain);
 			extAuthCookie.setPath(authCookiePath);
+                        extAuthCookie.setMaxAge (authMaxAge);                                                
         	
 			// Log info
 			if (logger.isDebugEnabled()) logger.debug("Adding gsa_basic_noauth cookie: " + extAuthCookie.getName() + ":" + extAuthCookie.getValue() 

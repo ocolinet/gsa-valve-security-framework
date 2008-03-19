@@ -17,6 +17,8 @@
 package com.google.gsa.valve.modules.ldap;
 
 import java.util.Hashtable;
+
+import javax.naming.AuthenticationException;
 import javax.naming.Context;
 import javax.naming.directory.InitialDirContext;
 import javax.naming.directory.DirContext;
@@ -37,13 +39,13 @@ public class Ldap {
     private static String baseuser = null;//Format: "dc=enterprise,dc=google,dc=com"
     private static String host= null; //Format: "ldap://ldapserver.google.com:389";
     private static String emailDomain= null; //Format: "@enterprise.google.com";
+    private static String rdnAttr = "cn";
     
     //User and password. They have to be sent in the login process
-    private static String user_acceso = ""; //user
-    private static String passwd = ""; //password
+    private String user_acceso = ""; //user
+    private String passwd = ""; //password    
+    private String userID = null;
     
-    private static String userID = null;
-    private static String rdnAttr = "cn";
         
     private static Logger logger = null;
     
@@ -147,8 +149,9 @@ public class Ldap {
     DirContext ctx = null;
     try {      
       ctx = new InitialDirContext(env);
-    }
-    catch (NamingException ne) {
+    } catch (AuthenticationException ex) {
+      logger.debug ("Username/password invalid"); 
+    } catch (NamingException ne) {
       logger.error ("NamingException: Cannot connect to LDAP: "+ne.getMessage(),ne);
     } catch (Exception e) {
       logger.error ("Exception: Cannot connect to LDAP: "+e.getMessage(),e);      
@@ -205,7 +208,7 @@ public class Ldap {
      * Vars: ctx (LDAP connection)
      * This method returns the Disthinguished Name of a user
      */
-    public static String getDN (String userid, DirContext ctx) throws Exception {
+    public String getDN (String userid, DirContext ctx) throws Exception {
 
         String attr = null;
         
@@ -252,7 +255,7 @@ public class Ldap {
      * Vars: ctx (LDAP connection)
      * Once the user is connected, his/her userid is retrieved from the AD to connect to the backend app
      */
-    public static String getAttributeByDN (String ldapAttribute, String userDName, DirContext ctx) throws Exception {
+    public String getAttributeByDN (String ldapAttribute, String userDName, DirContext ctx) throws Exception {
 
         String attr = null;
         try  {
@@ -296,7 +299,7 @@ public class Ldap {
      * Vars: ctx (LDAP connection)
      * Once the user is connected, his/her userid is retrieved from the the LDAP to connect to the backend app
      */
-    public static String getUsernameApp (String ldapAttribute, String userid, DirContext ctx) throws Exception {
+    public String getUsernameApp (String ldapAttribute, String userid, DirContext ctx) throws Exception {
 
         String attr = null;
         try  {
@@ -342,7 +345,7 @@ public class Ldap {
      * This method can be only used when the password is not encrypted
      * It is the same method as the previous one but just for password. In fact this method invokes it
      */
-    public static String getPasswordApp (String ldapAttribute, String pwd, DirContext ctx) throws Exception {
+    public String getPasswordApp (String ldapAttribute, String pwd, DirContext ctx) throws Exception {
         String attr = getUsernameApp (ldapAttribute, pwd, ctx);
         return attr;
     }    
@@ -354,7 +357,7 @@ public class Ldap {
      * Vars: ctx (LDAP connection)
      * Check if the user has this attribute in AD
      */
-    public static boolean checkAttributeExists (String attrb, String userid, DirContext ctx) throws Exception {
+    public boolean checkAttributeExists (String attrb, String userid, DirContext ctx) throws Exception {
 
         boolean attributeExists = false;
         try  {            
@@ -397,7 +400,7 @@ public class Ldap {
      * Vars: ctx (LDAP connection)
      * Change this attribute at the user entry in AD. This method can only be invoked if the attribute already exits
      */
-    public static boolean changeAttribute (String attrb, String userid,String newValue, DirContext ctx) throws Exception
+    public boolean changeAttribute (String attrb, String userid,String newValue, DirContext ctx) throws Exception
       {
         boolean result=true;
                     
@@ -437,7 +440,7 @@ public class Ldap {
      * Vars: ctx (LDAP connection)
      * Add this attribute at the user entry in AD. This method can only be invoked if the attribute doesn't have a value
      */  
-    public static boolean addAttribute (String attrb, String userid,String value, DirContext ctx) throws Exception
+    public boolean addAttribute (String attrb, String userid,String value, DirContext ctx) throws Exception
       {
         boolean result=true;
         
