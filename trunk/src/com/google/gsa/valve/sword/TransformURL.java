@@ -19,7 +19,6 @@ package com.google.gsa.valve.sword;
 import org.apache.log4j.Logger;
 
 
-
 public class TransformURL{
 	
 	String webtopServletPath = null;

@@ -101,7 +101,7 @@
 		<copy file="${basedir}/log4j.properties" todir="${deploy}/webappServer/common/classes"/>
 		<copy file="${basedir}/gsaValveConfig.xml" todir="${deploy}/webappServer/common/classes"/>
 		<copy file="${basedir}/server.conf.valve" todir="${deploy}/webappServer"/>
-		<copy file="${basedir}/readme.txt" todir="${deploy}/webappServer"/>
+		<copy file="${basedir}/readme.html" todir="${deploy}/webappServer"/>
 		<copy file="${basedir}/conf/authent_request_53_custom.xml" todir="${deploy}/webappServer/common/classes"/>
 		<copy file="${basedir}/conf/authorize_request_53.xml" todir="${deploy}/webappServer/common/classes"/>
 		
@@ -144,10 +144,6 @@
                 <mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/noauth"/>
 		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/noauth">
 			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/noauth"/>
-		</copy>
-                <mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sample"/>
-		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sample">
-			<fileset dir="${basedir}/src/com/google/gsa/valve/modules/sample"/>
 		</copy>
                 <mkdir dir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sm"/>
 		<copy todir="${deploy}/webappServer/src/com/google/gsa/valve/modules/sm">

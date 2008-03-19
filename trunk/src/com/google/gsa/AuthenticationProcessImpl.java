@@ -33,14 +33,12 @@ import java.util.Vector;
 public interface AuthenticationProcessImpl {
 	
 	
-	//verion 1.2 and before
+	//version 1.2 and before
 	//public int authenticate(HttpServletRequest request, HttpServletResponse response, Cookie authCookie, String url, Properties valveConfig, Credentials creds, String id) throws HttpException, IOException;
 	
 	//version 1.3 and up (using new full xml configuration)
 	public int authenticate(HttpServletRequest request, HttpServletResponse response, Vector<Cookie> cookies, String url, Credentials creds, String id) throws HttpException, IOException;
 	
         public void setValveConfiguration(ValveConfiguration valveConf);
-        
-	public void setIsNegotiate (boolean newIsNegotiate);
 	
 }

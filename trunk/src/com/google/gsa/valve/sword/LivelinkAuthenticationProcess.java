@@ -14,7 +14,6 @@
   * the License.
   */
 
-
 package com.google.gsa.valve.sword;
 
 import java.io.IOException;
@@ -22,6 +21,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import javax.security.auth.login.LoginException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,7 +30,6 @@ import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.NameValuePair;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.log4j.Logger;
 import org.apache.xerces.parsers.DOMParser;
 import org.w3c.dom.Document;
@@ -45,8 +44,6 @@ import com.google.gsa.Credentials;
 import com.google.gsa.WebProcessor;
 import com.google.gsa.valve.configuration.ValveConfiguration;
 
-import javax.security.auth.login.LoginException;
-
 
 public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl {
 	
@@ -55,49 +52,41 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 	
 	private Logger logger = null;
 	private WebProcessor  webProcessor = null;
-	private HttpMethodBase WebProcResponse = null;
+	private HttpMethodBase webProcResponse = null;
 	private ValveConfiguration conf = null;
+	
+	public void setLogger(Logger logger) {
+		this.logger = logger;
+	}
 	
 	public LivelinkAuthenticationProcess() {
 		logger = Logger.getLogger(this.getClass());
 	}
-        
-        public void setIsNegotiate (boolean isNegotiate) { 
-            //do nothing
-        }
-        
-        public void setValveConfiguration(ValveConfiguration valveConf) {
-            this.conf = valveConf;
-                                  
-        }
 	
-	public int authenticate(HttpServletRequest request, HttpServletResponse response, Vector<Cookie> authCookies, String url, Credentials creds, String id) throws HttpException, IOException {
+	public void setValveConfiguration(ValveConfiguration valveConf) {
+		this.conf  = valveConf;
 		
+	}
+
+	public int authenticate(HttpServletRequest request,
+			HttpServletResponse response, Vector<Cookie> reusableCookies, String url,
+			Credentials creds, String id) throws HttpException, IOException {
+
 		// Initialize status code
 		int statusCode 							= HttpServletResponse.SC_UNAUTHORIZED;
 		String userID 							= null;
 		String password 						= null;
 		String domain							= null;
-		UsernamePasswordCredentials credentials = null;
 		Cookie extAuthCookie 					= null;
-		String authNConfFile					= null;
 		
-                //CLAZARO: set config
-                //conf = ValveConfiguration.getInstance();
-                //CLAZARO: end set config
+		String authNparameter = null;
+		
 		
 		Credential cred = creds.getCredential(id);
-		if (this.conf == null || this.conf.getRepository(id)==null) {
-			logger.error("valveConfig is null");
-		} else {
-			if (this.conf.getRepository(id).getParameterValue("livelinkAuthenticationConfFilePath") != null) {
-				logger.debug("valveConfig is: " + this.conf.getRepository(id).getParameterValue("livelinkAuthenticationConfFilePath"));
-				authNConfFile = this.conf.getRepository(id).getParameterValue("livelinkAuthenticationConfFilePath");
-			} else {
-				logger.error("livelinkAuthenticationConfFilePath is null");
-				return 401;
-			}
-			
+
+		if (this.conf.getRepository(id).getParameterValue("livelinkAuthenticationConfFilePath") != null) {
+			logger.debug("livelinkAuthenticationConfFilePath: " + this.conf.getRepository(id).getParameterValue("livelinkAuthenticationConfFilePath"));
+			authNparameter = this.conf.getRepository(id).getParameterValue("livelinkAuthenticationConfFilePath");
 		}
 		
 		//Protection
@@ -109,11 +98,6 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 		
 //		Read cookies
 		cookies = request.getCookies();
-                
-                //CLAZARO
-                Cookie llCookie = null;
-                Cookie uidNameCookie = null;
-                
 //		Protection
 		if (cookies != null) {
 			if (logger.isDebugEnabled()) logger.debug("[LIVELINKAUTHENTICATIONPROCESS]  Cookies trouvés");	
@@ -125,10 +109,6 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 				if ((cookies[i].getName()).equals("gsa_livelink_LLCookie_"+id)) {
 					
 					logger.debug("[LIVELINKAUTHENTICATIONPROCESS]  Cookie gsa_livelink_LLCookie found");
-                                        
-                                        //CLAZARO
-                                        llCookie = cookies[i];
-                                        
 					// Increment counter
 					authN = true; 
 					
@@ -138,9 +118,6 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 					
 					logger.debug("[LIVELINKAUTHENTICATIONPROCESS]  Cookie gsa_livelink_LLCookie found");
 					
-                                        //CLAZARO
-                                        uidNameCookie = cookies[i];
-                                        
 					user = true;
 					
 				}
@@ -154,11 +131,6 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 			
 			logger.debug("[LIVELINKAUTHENTICATIONPROCESS]  Authentication on livelink already happened");
 			
-                        //CLAZARO
-                        //add cookie
-                        authCookies.add(llCookie);
-                        authCookies.add(uidNameCookie);
-                        
 			// Set status code
 			statusCode = HttpServletResponse.SC_OK;
 			
@@ -178,20 +150,18 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 		 domain = (String)request.getAttribute("Domain");
 		 */
 		userID 	= cred.getUsername();
-		logger.info("[LIVELINKAUTHENTICATIONPROCESS] userID vaut "+userID);
+		logger.debug("[LIVELINKAUTHENTICATIONPROCESS] userID vaut "+userID);
 		password = cred.getPassword();
-		logger.info("[LIVELINKAUTHENTICATIONPROCESS] user_password vaut "+password);
 		domain = conf.getAuthCookieDomain();
 		
 		
-		logger.info("[LIVELINKAUTHENTICATIONPROCESS] userID vaut "+userID);
-		logger.info("[LIVELINKAUTHENTICATIONPROCESS] password vaut "+password);
+		logger.debug("[LIVELINKAUTHENTICATIONPROCESS] userID: "+userID);
 		
 		
 		if ((userID==null) || (userID.equals(""))) {
 			
 			// Debug
-			if (logger.isDebugEnabled()) logger.error("[LIVELINKAUTHENTICATIONPROCESS]  HTTP 'UserID' parameter required!");
+			logger.error("HTTP 'UserID' parameter required!");
 			
 			// Return
 			statusCode = HttpServletResponse.SC_UNAUTHORIZED;
@@ -201,8 +171,7 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 		// Protection
 		if ((password==null) || (password.equals(""))) {
 			
-			// Debug
-			if (logger.isDebugEnabled()) logger.error("[LIVELINKAUTHENTICATIONPROCESS]  HTTP 'Password' parameter required!");
+			logger.error("HTTP 'Password' parameter required!");
 			
 			// Return
 			statusCode = HttpServletResponse.SC_UNAUTHORIZED;
@@ -210,11 +179,10 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 		}
 		
 		try{
-			credentials= new UsernamePasswordCredentials(userID, password);
 			this.webProcessor=new WebProcessor();
 			DOMParser parser = new DOMParser();
 			
-			parser.parse(authNConfFile);
+			parser.parse(authNparameter);
 			Document document = parser.getDocument();
 			NodeList requests = document.getElementsByTagName("request"), tmpLst = null;
 			String type = null;
@@ -222,10 +190,10 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 			boolean cookieSessionfound = false;
 			Element element1 = null;
 			String attValue = null;
-			Hashtable<String,Header> hashtable = new Hashtable<String,Header>(0);
+			Hashtable<String,NameValuePair> hashtable = new Hashtable<String,NameValuePair>(0);
 			Vector<NameValuePair> vector1 = new Vector<NameValuePair>(0);
 			for(int i = 0 ; i< requests.getLength(); i++){
-				hashtable = new Hashtable<String,Header>(0);
+				hashtable = new Hashtable<String,NameValuePair>(0);
 				vector1 = new Vector<NameValuePair>(0);
 				tmpLst = requests.item(i).getChildNodes();
 				for (int j=0 ; j<tmpLst.getLength() ; j++) {
@@ -260,25 +228,28 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 						}
 					}
 				}
-				Enumeration enumeration1 = vector1.elements();
+				Enumeration<NameValuePair> enumeration1 = vector1.elements();
 				NameValuePair anamevaluepair1[] = new NameValuePair[vector1.size()];
 				for(int l = 0; enumeration1.hasMoreElements(); l++){
 					anamevaluepair1[l] = (NameValuePair)enumeration1.nextElement();
-					logger.debug("[LIVELINKAUTHENTICATIONPROCESS] " + anamevaluepair1[l].getName() + " : " + anamevaluepair1[l].getValue());
+					logger.debug(anamevaluepair1[l].getName());
 				}
 				
 				enumeration1 = hashtable.elements();
 				Header aheader1[] = new Header[hashtable.size()];
-				logger.debug("[LIVELINKAUTHENTICATIONPROCESS] headers " );
 				for(int i1 = 0; enumeration1.hasMoreElements(); i1++){
 					aheader1[i1] = (Header)enumeration1.nextElement();
-					logger.debug("[LIVELINKAUTHENTICATIONPROCESS] \t" +  aheader1[i1].getName() + " : " + aheader1[i1].getValue());
+					logger.debug(aheader1[i1].getName() + " : " + aheader1[i1].getValue());
 				}
 				
-				WebProcResponse = webProcessor.sendRequest(credentials,type,aheader1,anamevaluepair1,urltofetch);
-				String larep=WebProcResponse.getResponseBodyAsString();
+				try {
+					webProcResponse = webProcessor.sendRequest(/*credentials*/null,type,aheader1,anamevaluepair1,urltofetch);
+				} catch (LoginException e) {
+					return 401;
+				}
+				String larep=webProcResponse.getResponseBodyAsString();
 				if (conf.getRepository(id).getParameterValue("OutputAUTHN")!=null && "true".equals(conf.getRepository(id).getParameterValue("OutputAUTHN"))) {
-					logger.debug("----------------[LIVELINKAUTHENTICATIONPROCESS] Response "+larep);
+					logger.trace("----------------[LIVELINKAUTHENTICATIONPROCESS]___________Response\r\n"+larep);
 				}
 				
 				org.apache.commons.httpclient.Cookie[] responseCookies = webProcessor.getResponseCookies();
@@ -293,9 +264,14 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 						if ((responseCookies[j].getName()).equals(CMSCookName)){
 							gsaAuthCookie.setValue(responseCookies[j].getValue());
 							logger.info("\t[LIVELINKAUTHENTICATIONPROCESS] cookie "+CMSCookName);
-							logger.debug("\t[LIVELINKAUTHENTICATIONPROCESS] cookie "+responseCookies[j].getValue());
 							String authCookieDomain = this.conf.getAuthCookieDomain();
 							String authCookiePath = this.conf.getAuthCookiePath();
+                                                        int authMaxAge = -1;
+                                                        try {                                                                             
+                                                            authMaxAge = Integer.parseInt(this.conf.getAuthMaxAge());                
+                                                        } catch(NumberFormatException nfe) {
+                                                            logger.error ("Configuration error: check the configuration file as the number set for authMaxAge is not OK:");
+                                                        }
 							
 							//Instantiate a new cookie
 							extAuthCookie = new Cookie(("gsa_livelink_" + responseCookies[j].getName() + "_" + id), (responseCookies[j].getName() + 
@@ -305,29 +281,18 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 							extAuthCookie.setDomain(authCookieDomain);
 							
 							extAuthCookie.setPath(authCookiePath);
+                                                        
+                                                        extAuthCookie.setMaxAge(authMaxAge);
 							
 							// Add authentication cookie
-                                                        //CLAZARO: add cookie below
-							//response.addCookie(extAuthCookie);
+							reusableCookies.add(extAuthCookie);
 							
 							Cookie userIdCookie = new Cookie (LivelinkAuthenticationProcess.UIDCookName, userID);
 							userIdCookie.setPath(authCookiePath);
 							userIdCookie.setDomain(authCookieDomain);
+                                                        userIdCookie.setMaxAge(authMaxAge);
 							
-                                                        //CLAZARO: add cookie below
-							//response.addCookie(userIdCookie);
-                                                        
-                                                        //CLAZARO: add sendCookies support
-                                                        boolean isSessionEnabled = new Boolean (conf.getSessionConfig().isSessionEnabled()).booleanValue();
-                                                        boolean sendCookies = new Boolean (conf.getSessionConfig().getSendCookies()).booleanValue();
-                                                        if ((!isSessionEnabled)||((isSessionEnabled)&&(sendCookies))) {
-                                                            response.addCookie(extAuthCookie);
-                                                            response.addCookie(userIdCookie);
-                                                        }
-                                                        
-                                                        //CLAZARO: add cookies to array
-                                                        authCookies.add(extAuthCookie); 
-                                                        authCookies.add(userIdCookie);
+							reusableCookies.add(userIdCookie);
 							
 							cookieSessionfound = true;
 							break;
@@ -346,14 +311,14 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 			if (error==null) {
 				error = "<title>Livelink - Error</title>";
 			}
-			String resp = WebProcResponse.getResponseBodyAsString();
+			String resp = webProcResponse.getResponseBodyAsString();
 			//<p>Error fetching item.
-			if (resp.indexOf(error)!=-1 || resp.indexOf("window.document.LoginForm.Username.focus()")!=-1 || resp.indexOf("Invalid username/password specified") != -1 || WebProcResponse.getStatusCode() != 200){
+			if (resp.indexOf(error)!=-1 || resp.indexOf("window.document.LoginForm.Username.focus()")!=-1 || resp.indexOf("Invalid username/password specified") != -1 || webProcResponse.getStatusCode() != 200){
 				statusCode=HttpServletResponse.SC_UNAUTHORIZED;
-				logger.error("[LIVELINKAUTHENTICATIONPROCESS] statuscode unauthorized ("+WebProcResponse.getStatusCode()+")");
+				logger.error("[LIVELINKAUTHENTICATIONPROCESS] failed ("+webProcResponse.getStatusCode()+")");
 			}else{
 				statusCode=HttpServletResponse.SC_OK;
-				logger.info("[LIVELINKAUTHENTICATIONPROCESS] Authentication cookie has the value :" +extAuthCookie.getValue());
+				logger.info("[LIVELINKAUTHENTICATIONPROCESS] Authentication successfull");
 			}
 			//Clear webProcessor cookies
 			webProcessor.clearCookies();
@@ -364,10 +329,6 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 		} catch (IOException ioe) {
 			logger.error("[LIVELINKAUTHENTICATIONPROCESS] IOException... Aborting",ioe);
 			return HttpServletResponse.SC_UNAUTHORIZED;
-                } catch (LoginException le) {
-                        logger.error("[HTTPBASICAUTHENTICATIONPROCESS] LoginException "
-		                                + le.getMessage(),le);
-                        return HttpServletResponse.SC_UNAUTHORIZED;
 		} catch (SAXException e) {
 			logger.error("[LIVELINKAUTHENTICATIONPROCESS] SAXException... Aborting",e);
 			return HttpServletResponse.SC_UNAUTHORIZED;
@@ -375,6 +336,5 @@ public class LivelinkAuthenticationProcess implements AuthenticationProcessImpl 
 		
 		return statusCode;
 	}
-	
 }
 

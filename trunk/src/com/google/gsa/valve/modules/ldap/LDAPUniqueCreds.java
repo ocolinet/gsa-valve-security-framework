@@ -45,20 +45,24 @@ public class LDAPUniqueCreds implements AuthenticationProcessImpl{
     private String ldapHost = null;
     private String ldapDomain = null;
     private String rdnAttr = null;
-	
-    
+	    
     // Number of auth cookies expected for this Authentication class, used as a check validation check
     private static final int NB_AUTH_COOKIES = 1;
+    
+    //Cookie Max Age
+    private int authMaxAge = -1;
     
 	public LDAPUniqueCreds() {
 		logger = Logger.getLogger(LDAPUniqueCreds.class);
 		
 	}
 	
-	
+        //setIsNegotiate: delete it
+        /*
         public void setIsNegotiate (boolean isNegotiate) { 
             //do nothing
         }
+        */
         
         public void setValveConfiguration(ValveConfiguration valveConf) {
             this.valveConf = valveConf;
@@ -139,12 +143,15 @@ public class LDAPUniqueCreds implements AuthenticationProcessImpl{
                 
         }
         
+        try { 
+            authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());                
+        } catch(NumberFormatException nfe) {
+            logger.error ("Configuration error: check the configuration file as the number set for authMaxAge is not OK:");
+        }
         
         //If the required cookie was not found need to authenticate.
         logger.debug("Authenticating");
-        try {                           
-            
-        
+        try {                                               
             
             //read values from config file (if any)
             readLDAPParameters (id);
@@ -228,6 +235,7 @@ public class LDAPUniqueCreds implements AuthenticationProcessImpl{
             // Set extra cookie parameters
             extAuthCookie.setDomain(authCookieDomain);
             extAuthCookie.setPath(authCookiePath);
+            extAuthCookie.setMaxAge(authMaxAge);
                     
             // Log info
             logger.debug("Adding cookie: " + extAuthCookie.getName() + ":" + extAuthCookie.getValue() 

@@ -1,26 +1,35 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<web-app version="2.4" 
-	xmlns="http://java.sun.com/xml/ns/j2ee" 
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-	xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee 
-	http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
-  <servlet>
-    <description>This is the description of my J2EE component</description>
-    <display-name>This is the display name of my J2EE component</display-name>
-    <servlet-name>Authenticate</servlet-name>
-    <servlet-class>com.google.gsa.Authenticate</servlet-class>
-  </servlet>
-  <servlet>
-    <description>This is the description of my J2EE component</description>
-    <display-name>This is the display name of my J2EE component</display-name>
-    <servlet-name>Fred</servlet-name>
-    <servlet-class>com.google.gsa.Fred</servlet-class>
-  </servlet>
-
-
-  <servlet-mapping>
-    <servlet-name>Authenticate</servlet-name>
-    <url-pattern>/Authenticate</url-pattern>
-  </servlet-mapping>
-
+<?xml version = '1.0' encoding = 'windows-1252'?>
+<!DOCTYPE web-app PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN" "http://java.sun.com/dtd/web-app_2_3.dtd">
+<web-app>
+    <description>Empty web.xml file for Web Application</description>
+    <servlet>
+         <servlet-name>Authenticate</servlet-name>
+         <servlet-class>com.google.gsa.Authenticate</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>Kerberos</servlet-name>
+        <servlet-class>com.google.gsa.Kerberos</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>Authenticate</servlet-name>
+        <url-pattern>/Authenticate</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Kerberos</servlet-name>
+        <url-pattern>/kerberos</url-pattern>
+    </servlet-mapping>
+    <mime-mapping>
+        <extension>html</extension>
+        <mime-type>text/html</mime-type>
+    </mime-mapping>
+    <mime-mapping>
+        <extension>txt</extension>
+        <mime-type>text/plain</mime-type>
+    </mime-mapping>    
+    <!--Error Code Section. Do not setup here an entry for Error 401-->
+    <error-page>
+        <error-code>500</error-code>
+        <location>/WEB-INF/error/500.html</location>
+    </error-page> 
 </web-app>
+

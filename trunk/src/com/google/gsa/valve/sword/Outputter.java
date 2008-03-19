@@ -13,8 +13,7 @@
   * License for the specific language governing permissions and limitations under
   * the License.
   */
-
-
+  
 package com.google.gsa.valve.sword;
 
 import java.io.File;

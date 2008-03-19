@@ -35,6 +35,9 @@ import com.google.gsa.valve.configuration.ValveConfiguration;
 
 import com.google.gsa.valve.configuration.ValveConfigurationDigester;
 
+import com.google.gsa.valve.configuration.ValveConfigurationException;
+import com.google.gsa.valve.errormgmt.ErrorManagement;
+
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
@@ -65,7 +68,6 @@ public class Authenticate extends HttpServlet {
         
         private static final String KRB5_ID = "krb5";
              
-        private UserIDEncoder userIDEncoder = new UserIDEncoder ();
 
         //Cookie vars        
         Cookie gsaAuthCookie;
@@ -78,6 +80,8 @@ public class Authenticate extends HttpServlet {
         //AuthN classes vars
         String authenticationProcessClsName = null;
         AuthenticationProcessImpl authenticationProcessCls = null;
+        
+        ErrorManagement errorMngmt = null;
         
         //CLAZARO: cookie array
         Vector<Cookie> authCookies = new Vector<Cookie>();
@@ -96,7 +100,7 @@ public class Authenticate extends HttpServlet {
                                 
                 logger.debug("Config file: "+gsaValveConfigPath);
                 ValveConfigurationDigester valveConfDigester = new ValveConfigurationDigester();
-                this.valveConf = valveConfDigester.run(gsaValveConfigPath);
+                this.valveConf = valveConfDigester.run(gsaValveConfigPath);                            
 
                 //credentials                
                 Credentials creds = new Credentials();
@@ -168,10 +172,7 @@ public class Authenticate extends HttpServlet {
 			authenticationProcessCls = (AuthenticationProcessImpl) Class.forName(authenticationProcessClsName).newInstance();
 
 			authenticationProcessCls.setValveConfiguration(valveConf);
-                        
-                        //set isNegotiate equals false. If you want to set kerberos negotiate up, use Kerberos servlet
-                        authenticationProcessCls.setIsNegotiate(false);
-			
+                        		
 			
 		} catch (InstantiationException e) {
 
@@ -210,7 +211,7 @@ public class Authenticate extends HttpServlet {
                 
                 //Instantiate authentication cookie with creation time
                 //SET a value for the USERID
-                gsaAuthCookie = new Cookie(authCookieName, userIDEncoder.getID(username, creationTime));
+                gsaAuthCookie = new Cookie(authCookieName, UserIDEncoder.getID(username, creationTime));
 		
 		// Set cookie domain
 		gsaAuthCookie.setDomain(authCookieDomain);
@@ -233,10 +234,26 @@ public class Authenticate extends HttpServlet {
 			
 		} 
 
-		// Protection
-		if (statusCode == HttpServletResponse.SC_UNAUTHORIZED) {
+		// Protection                
+		if (statusCode == HttpServletResponse.SC_UNAUTHORIZED) {			                                                                        
+                        
+                        //Send personalized error message (if any)
+                        try {
+                            //create the instance if it does not exist
+                            if (errorMngmt == null) {                
+                                errorMngmt = new ErrorManagement (valveConf.getErrorLocation());                
+                            }
+                            
+                            //protection
+                            if (errorMngmt != null) {
+                                errorMngmt.showHTMLError(response, errorMngmt.processError(statusCode));
+                            }
+                        
+                        } catch (ValveConfigurationException e) {
+                            logger.error("Configuration error: " + e);
+                        }
 			
-			// Raise error
+                        // Raise error
 			response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication process failed!");
 
 			// Debug
@@ -427,6 +444,7 @@ public class Authenticate extends HttpServlet {
                  }             
 
                 if ((isSessionEnabled)||(isKerberos)) {
+                    logger.debug ("Getting sessionTimer instance");
                     sessionTimer = SessionTimer.getInstance(isSessionEnabled, isKerberos, sessionCleanup);
                     sessionTimer.setTimer();
                 }

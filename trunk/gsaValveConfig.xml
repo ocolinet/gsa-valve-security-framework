@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
-<GSAValveConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///I:/My Documents/code and feeds/ValveDevelopment/gsaValveConfiguration.xsd">
+<GSAValveConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:///I:/gsaValveConfiguration.xsd">
 
 <!-- General Valve Configuration  -->
+<!-- change the following sample values with those for your environment (google.com here is just a sample corporate domain) -->
 <loginUrl>http://valve.google.com:8080/valve/login.jsp</loginUrl>
 <authCookieDomain>.google.com</authCookieDomain>
 <authenticationProcessImpl>com.google.gsa.valve.rootAuth.RootAuthenticationProcess</authenticationProcessImpl>
@@ -11,28 +12,29 @@
 <authMaxAge>-1</authMaxAge>
 <authCookieName>gsaSSOCookie</authCookieName>
 <searchHost>http://gsa1.google.com</searchHost>
-<searchHost>http://gsa2.google.com</searchHost>
-<maxConnectionsPerHost>10</maxConnectionsPerHost>
+<!-- add here more search appliance if needed. For example -->
+<!-- <searchHost>http://gsa2.google.com</searchHost> -->
+<maxConnectionsPerHost>60</maxConnectionsPerHost>
 <maxTotalConnections>300</maxTotalConnections>
-<testFormsCrawlUrl>http://clazaroT60-es.corp.google.com:8080/valve/test.html</testFormsCrawlUrl>
+<testFormsCrawlUrl>http://valve.google.com:8080/valve/test.html</testFormsCrawlUrl>
+<errorLocation>C:\\Tomcat\\webapps\\valve\\WEB-INF\\error</errorLocation>
 
-<!-- Kerberos config. If you're not using at all just configure the first two attributes -->
+<!-- Kerberos config. If you're not using at all just set the first two attributes to false (the rest are discarded) -->
 <kerberos isKerberos="false"
           isNegotiate="false"
-	  krbini="c:\\Program Files\\Tomcat5.5kerb\\conf\\spnego\\krb5.ini"
-	  krbconfig="c:\\Program Files\\Tomcat5.5kerb\\conf\\spnego\\bcsLogin.conf"
+	  krbini="c:\\Tomcat\\conf\\spnego\\krb5.ini"
+	  krbconfig="c:\\Tomcat\\conf\\spnego\\bcsLogin.conf"
 	  krbAdditionalAuthN="false"
 	  krbLoginUrl="http://valve.google.com:5080/valve/loginkrb.jsp"
 	  krbUsrPwdCrawler="false"
 	  krbUsrPwdCrawlerUrl="http://valve.google.com:5080/valve/logincrawlerkrb.jsp"/>
 
-<!-- Session config. If you're not using at all just configure the first attribute -->
+<!-- Session config. If you're not using at all just set the first attribute to false (the rest are discarded) -->
 <sessions isSessionEnabled="false"
-	  sessionTimeout="30"
+	  sessionTimeout="-1"
 	  maxSessionAge="360"
 	  sessionCleanup="15"
 	  sendCookies="true"/>
-
 
 <!-- THE NEXT REPOSITORIES ARE JUST EXAMPLES. USE YOUR OWN REPOSITORIES CONFIGURATION -->
 

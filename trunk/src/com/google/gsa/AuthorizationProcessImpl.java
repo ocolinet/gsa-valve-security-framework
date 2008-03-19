@@ -33,7 +33,7 @@ import javax.servlet.http.HttpServletResponse;
 public interface AuthorizationProcessImpl {
 	
 	//version 1.2 and before
-	//fspublic int authorize(HttpServletRequest request, HttpServletResponse response, Cookie[] authCookies, String url, Properties valveConfig, String id) throws HttpException, IOException;
+	//public int authorize(HttpServletRequest request, HttpServletResponse response, Cookie[] authCookies, String url, Properties valveConfig, String id) throws HttpException, IOException;
 	
 	//version 1.3 and up (using new full xml configuration)
 	public int authorize(HttpServletRequest request, HttpServletResponse response, Cookie[] authCookies, String url, String id) throws HttpException, IOException, nonValidSessionException;

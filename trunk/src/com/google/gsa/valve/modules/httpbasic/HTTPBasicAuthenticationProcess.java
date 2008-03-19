@@ -60,9 +60,12 @@ public class HTTPBasicAuthenticationProcess implements AuthenticationProcessImpl
 		
 	}
         
+        //setIsNegotiate: delete it        
+        /*
         public void setIsNegotiate (boolean isNegotiate) { 
             //do nothing
         }
+        */
     
         
         public void setValveConfiguration(ValveConfiguration valveConf) {
@@ -162,8 +165,20 @@ public class HTTPBasicAuthenticationProcess implements AuthenticationProcessImpl
 
 		
                 //Get Max connections
-		int maxConnectionsPerHost = new Integer (valveConf.getMaxConnectionsPerHost()).intValue();                                
-		int maxTotalConnections = (new Integer (valveConf.getMaxTotalConnections())).intValue();
+                int maxConnectionsPerHost = 30;                                
+                int maxTotalConnections = 100;                                
+                
+                //Cookie Max Age
+                int authMaxAge = -1;
+                
+                try { 
+                    maxConnectionsPerHost = new Integer (valveConf.getMaxConnectionsPerHost()).intValue();                                
+                    maxTotalConnections = (new Integer (valveConf.getMaxTotalConnections())).intValue();
+                    authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());                
+                } catch(NumberFormatException nfe) {
+                    logger.error ("Configuration error: check the configuration file as the numbers set for any of the following parameters are not OK:");
+                    logger.error ("  * maxConnectionsPerHost    * maxTotalConnections    * authMaxAge");
+                }
 		                 
                   
                 // Protection
@@ -194,8 +209,7 @@ public class HTTPBasicAuthenticationProcess implements AuthenticationProcessImpl
 
 			// Request page, testing if credentials are valid
 			if (credentials != null){
-				logger.debug("Username: " + credentials.getUserName());
-				logger.debug("Password: " + credentials.getPassword());
+				logger.debug("Username: " + credentials.getUserName());				
 				logger.debug("URL: " + authURL);
 			}
 			
@@ -218,7 +232,8 @@ public class HTTPBasicAuthenticationProcess implements AuthenticationProcessImpl
 	        	extAuthCookie = new Cookie("gsa_basic_auth","");
 	        	
 	        	if (authHeader != null) {
-	        		extAuthCookie.setValue(authHeader.getValue());
+                        
+	        		extAuthCookie.setValue(getBasicAuthNChain(authHeader.getValue()));
 	        		
 	        	}
 	        	String authCookieDomain = null;
@@ -231,6 +246,7 @@ public class HTTPBasicAuthenticationProcess implements AuthenticationProcessImpl
                         // Set extra cookie parameters
                         extAuthCookie.setDomain(authCookieDomain);
                         extAuthCookie.setPath(authCookiePath);
+                        extAuthCookie.setMaxAge(authMaxAge);
 	        	
                         // Log info
                         if (logger.isDebugEnabled()) logger.debug("Adding gsa_basic_auth cookie: " + extAuthCookie.getName() + ":" + extAuthCookie.getValue() 
@@ -278,5 +294,20 @@ public class HTTPBasicAuthenticationProcess implements AuthenticationProcessImpl
 		return statusCode;
 		
 	}
+        
+        public String getBasicAuthNChain (String basic) {
+            String authNChain = "";
+            String basicMsg = "Basic ";
+            
+            logger.debug("Basic is: "+basic);
+            if ((!basic.equals(null))&&(!basic.equals(""))) {
+                //treat basic chain and just get the chain
+                int index = basicMsg.length();
+                authNChain = basic.substring(index);
+                logger.debug ("New Basic chain: "+authNChain+"; with index: "+index);
+            }
+            
+            return authNChain;
+        }
 		
 }

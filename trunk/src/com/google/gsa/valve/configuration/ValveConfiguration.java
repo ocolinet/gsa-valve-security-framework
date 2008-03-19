@@ -38,7 +38,10 @@ public class ValveConfiguration {
         //Max connections vars and test Url
         private String maxConnectionsPerHost;
         private String maxTotalConnections;
-        private String testFormsCrawlUrl;        
+        private String testFormsCrawlUrl;  
+        
+        //Error location
+        private String errorLocation;
         
         //Logger
         private static Logger logger = Logger.getLogger(ValveConfiguration.class);
@@ -47,7 +50,7 @@ public class ValveConfiguration {
         
         //Session and Krb objects
         ValveKerberosConfiguration krbConfig;
-        ValveSessionConfiguration sessionConfig;
+        ValveSessionConfiguration sessionConfig;                
         
         
         public ValveConfiguration() {
@@ -181,7 +184,7 @@ public class ValveConfiguration {
     
         public ValveKerberosConfiguration getKrbConfig () {
             return krbConfig;
-        }        
+        }                
 
     public void setMaxConnectionsPerHost(String maxConnectionsPerHost) {
         this.maxConnectionsPerHost = maxConnectionsPerHost;
@@ -207,6 +210,14 @@ public class ValveConfiguration {
         return testFormsCrawlUrl;
     }
     
+    public void setErrorLocation(String errorLocation) {
+        this.errorLocation = errorLocation;
+    }
+
+    public String getErrorLocation() {
+        return errorLocation;
+    }
+    
     public void logValveConfiguration () {
         logger.debug ("loginUrl: "+this.getLoginUrl());
         logger.debug ("authCookieDomain: "+this.getAuthCookieDomain());
@@ -223,6 +234,7 @@ public class ValveConfiguration {
         logger.debug ("maxConnectionsPerHost: "+this.getMaxConnectionsPerHost());
         logger.debug ("maxTotalConnections: "+this.getMaxTotalConnections());
         logger.debug ("testFormsCrawlUrl: "+this.getTestFormsCrawlUrl());
+        logger.debug ("errorLocation: "+this.getErrorLocation());
         
         logger.debug("***Kerberos Configuration***");
         logger.debug ("isKerberos: "+this.getKrbConfig().isKerberos());
