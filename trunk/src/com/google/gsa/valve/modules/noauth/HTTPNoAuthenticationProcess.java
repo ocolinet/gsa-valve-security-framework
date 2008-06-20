@@ -19,11 +19,9 @@ package com.google.gsa.valve.modules.noauth;
 
 import com.google.gsa.AuthenticationProcessImpl;
 import com.google.gsa.Credentials;
-import com.google.gsa.WebProcessor;
 import com.google.gsa.valve.configuration.ValveConfiguration;
 
 import java.io.IOException;
-import java.util.Hashtable;
 
 import java.util.Vector;
 
@@ -32,181 +30,161 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
+
 import org.apache.log4j.Logger;
 
-
+/**
+ * It implements the access to a backend repository that does not require any 
+ * security, so everyone will be able to access to the document.
+ * 
+ */
 public class HTTPNoAuthenticationProcess implements AuthenticationProcessImpl {
-	
-	// Number of auth cookies expected for this Authentication class, used as a check validation check
-	private static final int NB_AUTH_COOKIES = 1;
-	private static Hashtable<String, WebProcessor> webProcessors = new Hashtable<String, WebProcessor>();
-	private ValveConfiguration valveConf = null;
-	
-	private Logger logger = null;
-	
-	public HTTPNoAuthenticationProcess() {
-		//Instantiate logger
-		logger = Logger.getLogger(HTTPNoAuthenticationProcess.class);
-		
-	}
+
+    //Valve configuration
+    private ValveConfiguration valveConf = null;
+
+    //logger
+    private Logger logger = null;
+
+
+    /**
+     * Class constructor
+     * 
+     */
+    public HTTPNoAuthenticationProcess() {
+        //Instantiate logger
+        logger = Logger.getLogger(HTTPNoAuthenticationProcess.class);
+
+    }
+
+    /**
+     * Sets the Valve Configuration instance to read the parameters 
+     * from there
+     * 
+     * @param valveConf the Valve configuration instance
+     */
+    public void setValveConfiguration(ValveConfiguration valveConf) {
+        this.valveConf = valveConf;
+
+    }
+
+
+    /**
+     * This method simulates the authentication process against a content 
+     * source, so that every document is consider here as public.
+     * <p>
+     * Creates the authentication cookie and always return 200, unless there is 
+     * any problem processing the request.
+     * 
+     * @param request HTTP request
+     * @param response HTTP response
+     * @param authCookies vector that contains the authentication cookies
+     * @param url the document url
+     * @param creds an array of credentials for all external sources
+     * @param id the default credential id to be retrieved from creds
         
-        //setIsNegotiate: delete it
-        /*
-        public void setIsNegotiate (boolean isNegotiate) { 
-            //do nothing
-        }
-        */
+     * @return the HTTP error code
         
-        public void setValveConfiguration(ValveConfiguration valveConf) {
-            this.valveConf = valveConf;
-                             
+     * @throws HttpException
+     * @throws IOException
+     */
+    public int authenticate(HttpServletRequest request, 
+                            HttpServletResponse response, 
+                            Vector<Cookie> authCookies, String url, 
+                            Credentials creds, String id) throws HttpException, 
+                                                                 IOException {
+
+        Cookie[] cookies = null;
+
+        // Initialize status code
+        int statusCode = HttpServletResponse.SC_UNAUTHORIZED;
+
+        // Read cookies
+        cookies = request.getCookies();
+
+        // Debug
+        logger.debug("HTTP No authentication start");
+
+
+        //
+        // Launch the authentication process
+        //
+
+        // Protection
+        try {
+
+            Cookie extAuthCookie = null;
+            extAuthCookie = new Cookie("gsa_basic_noauth", "");
+
+
+            extAuthCookie.setValue("true");
+
+
+            String authCookieDomain = null;
+            String authCookiePath = null;
+            int authMaxAge = -1;
+
+            // Cache cookie properties
+            authCookieDomain = 
+                    (request.getAttribute("authCookieDomain")).toString();
+            authCookiePath = 
+                    (request.getAttribute("authCookiePath")).toString();
+            //authMaxAge
+            try {
+                authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());
+            } catch (NumberFormatException nfe) {
+                logger.error("Configuration error: chack the configuration file as the number set for authMaxAge is not OK:");
+            }
+
+            // Set extra cookie parameters
+            extAuthCookie.setDomain(authCookieDomain);
+            extAuthCookie.setPath(authCookiePath);
+            extAuthCookie.setMaxAge(authMaxAge);
+
+            // Log info
+            if (logger.isDebugEnabled())
+                logger.debug("Adding gsa_basic_noauth cookie: " + 
+                             extAuthCookie.getName() + ":" + 
+                             extAuthCookie.getValue() + ":" + 
+                             extAuthCookie.getPath() + ":" + 
+                             extAuthCookie.getDomain() + ":" + 
+                             extAuthCookie.getSecure());
+
+            //add sendCookies support
+            boolean isSessionEnabled = 
+                new Boolean(valveConf.getSessionConfig().isSessionEnabled()).booleanValue();
+            boolean sendCookies = false;
+            if (isSessionEnabled) {
+                sendCookies = 
+                        new Boolean(valveConf.getSessionConfig().getSendCookies()).booleanValue();
+            }
+            if ((!isSessionEnabled) || ((isSessionEnabled) && (sendCookies))) {
+                response.addCookie(extAuthCookie);
+            }
+
+            //add cookie to the array
+            authCookies.add(extAuthCookie);
+
+            statusCode = HttpServletResponse.SC_OK;
+
+        } catch (Exception e) {
+
+            // Log error
+            logger.error("HTTP Basic authentication failure: " + 
+                         e.getMessage(), e);
+
+            // Update status code
+            statusCode = HttpServletResponse.SC_UNAUTHORIZED;
+
         }
 
-	
-	public int authenticate(HttpServletRequest request, HttpServletResponse response, Vector<Cookie> authCookies, String url, Credentials creds, String id) throws HttpException, IOException {
-		
-		Cookie[] cookies = null;
+        // End of the authentication process
+        logger.debug("HTTP No Authentication completed (" + statusCode + ")");
 
-		
-		//Authentication module that uses basic authentication 
-		
-		//The username and password for the source are assumed to be the ones captured during the 
-		//SSO authentication. These are stored in creds and in this case the root parameters. creds is an array
-		//of credentials for all external sources. The first element is 'root' which contains the credentials 
-		//captured from the login page. In this example the same credentials are used to authenticate against
-		//this HTTP Basic source
-				
-		UsernamePasswordCredentials credentials = null;
-			
-		// Set counter
-		int nbCookies = 0;
-		
-		// Initialize status code
-		int statusCode = HttpServletResponse.SC_UNAUTHORIZED;
-		
-		// Read cookies
-		cookies = request.getCookies();
-                
-                Cookie noAuthNCookie = null;
-                
-		// Debug
-		logger.debug("HTTP No authentication start");
-                
 
-		//First check if gsa_basic_auth cookie exisits, if it does that assume still authenticated and return
+        // Return status code
+        return statusCode;
 
-		// Protection
-		if (cookies != null) {
-				
-			// Check if the authentication process already happened by looking at the existing cookies	
-			for (int i = 0; i < cookies.length; i++) {
-	
-				// Check cookie name
-				if ((cookies[i].getName()).equals("gsa_basic_noauth") ) {
-					
-                                        noAuthNCookie = cookies[i];
-                                        
-					// Increment counter
-					nbCookies++; 					
-				}				
-			}			
-		}
-		
-		// Protection	
-		if (nbCookies == NB_AUTH_COOKIES) {
-			
-			logger.debug("Already Authenticated");
-			
-                        //add cookie
-                        authCookies.add (noAuthNCookie);
-                        		
-			// Set status code
-			statusCode = HttpServletResponse.SC_OK;
+    }
 
-			// Return
-			return statusCode;
-			
-		}
-		
-		
-		//If the required cookie was not found need to authenticate.
-		
-		
-		//
-		// Launch the authentication process
-		//
-		
-		// Protection
-		try {
-		
-			Cookie extAuthCookie = null;
-                        extAuthCookie = new Cookie("gsa_basic_noauth","");
-        	
-        	
-                        extAuthCookie.setValue("true");
-        		
-        	
-                        String authCookieDomain = null;
-			String authCookiePath = null;                        
-                        int authMaxAge = -1;
-			
-			// Cache cookie properties
-			authCookieDomain = (request.getAttribute("authCookieDomain")).toString();
-			authCookiePath = (request.getAttribute("authCookiePath")).toString();
-                        //authMaxAge
-                        try { 
-                            authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());                
-                        } catch(NumberFormatException nfe) {
-                            logger.error ("Configuration error: check the configuration file as the number set for authMaxAge is not OK:");
-                        }
-                        
-			// Set extra cookie parameters
-			extAuthCookie.setDomain(authCookieDomain);
-			extAuthCookie.setPath(authCookiePath);
-                        extAuthCookie.setMaxAge (authMaxAge);                                                
-        	
-			// Log info
-			if (logger.isDebugEnabled()) logger.debug("Adding gsa_basic_noauth cookie: " + extAuthCookie.getName() + ":" + extAuthCookie.getValue() 
-					+ ":" + extAuthCookie.getPath() + ":" + extAuthCookie.getDomain() + ":" + extAuthCookie.getSecure());
-			
-                         //add sendCookies support
-                         boolean isSessionEnabled = new Boolean (valveConf.getSessionConfig().isSessionEnabled()).booleanValue();
-                         boolean sendCookies = false;
-                         if (isSessionEnabled) {
-                            sendCookies = new Boolean (valveConf.getSessionConfig().getSendCookies()).booleanValue();
-                         }
-                         if ((!isSessionEnabled)||((isSessionEnabled)&&(sendCookies))) {
-                             response.addCookie(extAuthCookie);
-                         }                       
-                        
-                        //add cookie to the array
-                        authCookies.add (extAuthCookie);
-			
-			statusCode = HttpServletResponse.SC_OK;
-	        
-		} catch(Exception e) {
-
-			// Log error
-			logger.error("HTTP Basic authentication failure: " + e.getMessage(),e);			
-			
-			// Reset Web processor
-			logger.debug("in catch exception BEFORE webprocessors PUT");
-			webProcessors.put(Thread.currentThread().getName(), null);
-			logger.debug("in catch exception AFTER webprocessors PUT");
-			// Update status code
-			statusCode = HttpServletResponse.SC_UNAUTHORIZED;
-			
-		}
-
-		// End of the authentication process
-		logger.debug("HTTP No Authentication completed (" + statusCode + ")");
-      
-		
-		
-		// Return status code
-		return statusCode;
-		
-	}
-	
 }

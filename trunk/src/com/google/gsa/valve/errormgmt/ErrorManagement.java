@@ -31,204 +31,256 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
+/**
+ * This class processes the error messages sent back to the user. Usually this 
+ * can be done in the web application using the mechanisms provided by the 
+ * application server, whatever it would be. In some deployment scenarios, 
+ * it's recommended to configure a custom error management, specially for 
+ * 401 (Unauthorized) error. This scenario is for example silent Kerberos, as 
+ * a 401 error could be either part of the negotiation process, i.e. the server 
+ * is sending this error to tell the browser some credentials are needed, or the 
+ * final error response. This last case is the only one the error message should 
+ * be sent back to the user.
+ * <p>
+ * It reads the specific error messages stored in html file, having as a name 
+ * the HTTP error number (for instance 401.html). Each error is put in a 
+ * map that is populated just once and can be read multiple times.
+ * 
+ */
 public class ErrorManagement {
-    
+
     //default error pages location
     private static String errorLocation = null;
-    
+
     //logger
-    private static Logger logger = null;
-    
+    private static Logger logger = Logger.getLogger(ErrorManagement.class);
+
     //Error Vector
     private static Map<Integer, String> errorMap = null;
-    
+
+
+    /**
+     * Class Constructor
+     * 
+     * @param errorLocation the path where the error messages are located
+     * 
+     * @throws ValveConfigurationException
+     */
     public ErrorManagement(String errorLocation) throws ValveConfigurationException {
         //Set error location
-        setErrorLocation (errorLocation);
-        // Instantiate logger
-        logger = Logger.getLogger(ErrorManagement.class);
+        setErrorLocation(errorLocation);
         //Initialize Error Map
-        initializeErrorMap ();
+        initializeErrorMap();
     }
 
-    //Getters and setters
+
+    /**
+     * Sets the path to the error directory
+     * 
+     * @param errorLocation the path where the error messages are located
+     */
     public void setErrorLocation(String errorLocation) {
         this.errorLocation = errorLocation;
     }
 
+    /**
+     * Gets the location where the error directory is
+     * 
+     * @return the path where the error messages are located
+     */
     public String getErrorLocation() {
         return errorLocation;
     }
-    
-    //Initialize errorMap
-    private void initializeErrorMap () throws ValveConfigurationException {
+
+    /**
+     * Initilizes the map that contains the error messages located at 
+     * "errorLocation" directory. Once this map is created, it can be used 
+     * multiple times to immediately send the error message back to the user.
+     * 
+     * @throws ValveConfigurationException
+     */
+    private void initializeErrorMap() throws ValveConfigurationException {
         if (errorLocation != null) {
             if (errorMap == null) {
                 //protection: check if location dir exists and it's not null           
                 if (errorLocation != null) {
-                    File locationDir = new File (errorLocation);
-                    logger.debug("Absolute path is: "+locationDir.getAbsolutePath());
-                    if ((locationDir.exists())&&(locationDir.isDirectory()))  {
+                    File locationDir = new File(errorLocation);
+                    logger.debug("Absolute path is: " + 
+                                 locationDir.getAbsolutePath());
+                    if ((locationDir.exists()) && 
+                        (locationDir.isDirectory())) {
                         logger.debug("Creating the error file Map");
                         //initialize map
                         errorMap = new HashMap<Integer, String>();
                         logger.debug("Populating the error Map with error numbers and their associated files");
                         //populate map
-                        populateErrorMap (locationDir);
+                        populateErrorMap(locationDir);
                     } else {
-                        throw new ValveConfigurationException ("Error Directory Location (errorLocation) has not been set up properly. Review your config file");
-                    }        
+                        throw new ValveConfigurationException("Error Directory Location (errorLocation) has not been set up properly. Review your config file");
+                    }
                 }
             }
+        } else {
+            throw new ValveConfigurationException("Error Directory Location (errorLocation) has not been defined. Review your config file");
         }
-        else {
-            throw new ValveConfigurationException ("Error Directory Location (errorLocation) has not been defined. Review your config file");
-        }
-    }      
+    }
 
-    /*
-     * Method: populateErrorMap
-     * Description: populate all the existing error files in the directory
-     * Var: location (error page directory)
-     */   
-     private void populateErrorMap (File location) {           
+    /**
+     * Populates all the existing error files in the directory
+     * 
+     * @param location the path where the error messages are located
+     */
+    private void populateErrorMap(File location) {
         //Get all files
-        File[] files = location.listFiles ();
-     
+        File[] files = location.listFiles();
+
         int i = 0;
         int n = (files == null) ? 0 : files.length;
-        
-        logger.debug("Number of error files found: "+n);
-        
+
+        logger.debug("Number of error files found: " + n);
+
         try {
             while (i < n) {
                 //Get file
                 File errorHTMLFile = files[i];
                 //Protection: check if it's a file
-                if (errorHTMLFile.isFile ()) {
+                if (errorHTMLFile.isFile()) {
                     //get file name
                     String fileName = errorHTMLFile.getName();
-                    logger.debug("Error file found: "+fileName);
+                    logger.debug("Error file found: " + fileName);
                     String fileNumber = null;
                     try {
-                        fileNumber = fileName.substring(0,fileName.lastIndexOf("."));
+                        fileNumber = 
+                                fileName.substring(0, fileName.lastIndexOf("."));
+                    } catch (java.lang.StringIndexOutOfBoundsException e) {
+                        logger.error("Error: the file name should have an extension");
                     }
-                    catch (java.lang.StringIndexOutOfBoundsException e) {
-                        System.err.println("Error: the file name should have an extension");
-                    }
-                    logger.debug("It's file number is: "+fileNumber);
+                    logger.debug("It's file number is: " + fileNumber);
                     if (fileNumber != null) {
-                        if (checkValidHTTPError (fileNumber)) {
-                            String absolutePath = errorHTMLFile.getAbsolutePath(); 
-                            logger.debug("File's absolute path: "+absolutePath);
-                            errorMap.put((new Integer (fileNumber)), absolutePath);
+                        if (checkValidHTTPError(fileNumber)) {
+                            String absolutePath = 
+                                errorHTMLFile.getAbsolutePath();
+                            logger.debug("File's absolute path: " + 
+                                         absolutePath);
+                            errorMap.put((new Integer(fileNumber)), 
+                                         absolutePath);
                             logger.debug("New error file inserted");
                         }
                     }
-                }         
-                i ++;
+                }
+                i++;
             }
+        } catch (Exception e) {
+            logger.error("Error when processing error files: " + e);
         }
-        catch (Exception e) {
-            logger.error ("Error when processing error files: "+e);
-        }
-            
-     } 
-     
-    /*
-     * Method: checkValidHTTPError
-     * Description: checks if it's a valid error number
-     * Var: errorNumber (string that contains the error number)
-     * Returns: if it's a valid error number or not
-     */   
-     private boolean checkValidHTTPError (String errorNumber) { 
-        boolean validError = false;
-        
-        try  {
-           Integer errorInteger = new Integer (errorNumber);
-           int errorInt = errorInteger.intValue();
-           if ((errorInt >=100)&&(errorInt<600)) {
-               validError = true;
-           }
-        } catch (NumberFormatException ex)  {
-            logger.error ("Non valid error number: the file format should be <http_error_code_int>.html "+ex);
-        } catch (Exception ex)  {
-            logger.error ("Error processing error file name "+ex);
-        } finally  {
-        }
-        
-        return validError;
-     }
-     
-    /*
-     * Method: processError
-     * Description: processes the HTTP error number and returns the error page
-     * Var: errorNumber (it's the standard HTTP error number)
-     * Returns: the HTML error page content if it does exist (if not, null)
+
+    }
+
+    /**
+     * Checks if the file name it's a valid error number
+     * 
+     * @param errorNumber HTTP error number
+     * 
+     * @return boolean - "true" if the string contains a valid error number
      */
-    public String processError (int errorNumber) {
+    private boolean checkValidHTTPError(String errorNumber) {
+        boolean validError = false;
+
+        try {
+            Integer errorInteger = new Integer(errorNumber);
+            int errorInt = errorInteger.intValue();
+            if ((errorInt >= 100) && (errorInt < 600)) {
+                validError = true;
+            }
+        } catch (NumberFormatException ex) {
+            logger.error("Non valid error number: the file format should be <http_error_code_int>.html " + 
+                         ex);
+        } catch (Exception ex) {
+            logger.error("Error processing error file name " + ex);
+        } finally {
+        }
+
+        return validError;
+    }
+
+    /**
+     * Processes the HTTP error number and returns the error page
+     * 
+     * @param errorNumber standard HTTP error number
+     * 
+     * @return the HTML error page content if it does exist (if not, null)
+     */
+    public String processError(int errorNumber) {
         String errorPage = null;
-        try  {
+        try {
             if (errorMap != null) {
                 String fileLoc = errorMap.get(new Integer(errorNumber));
                 if (fileLoc != null) {
-                    errorPage = readHTMLFile (fileLoc);
+                    errorPage = readHTMLFile(fileLoc);
                 } else {
                     logger.debug("Error file does not exist");
                 }
             }
-        } catch (Exception ex)  {
-            logger.error("Error processing error page: "+ex);
-        } finally  {
+        } catch (Exception ex) {
+            logger.error("Error processing error page: " + ex);
+        } finally {
         }
-        return errorPage;        
+        return errorPage;
     }
-    
-    /*
-     * Method: readHTMLFile
-     * Description: reads the error HTML file
-     * Var: fileLoc (file location)
-     * Returns: the HTML error page content if it does exist (if not, null)
+
+    /**
+     * Reads the error HTML file
+     * 
+     * @param fileLoc the path where the error message HTML file is located
+     * 
+     * @return the HTML error page content if it does exist (if not, null)
      */
-    public String readHTMLFile (String fileLoc) {
+    public String readHTMLFile(String fileLoc) {
         String errorPage = null;
-        try  {
+        try {
             FileInputStream fis = new FileInputStream(fileLoc);
-            int x=fis.available();
-            byte b[]= new byte[x];
+            int x = fis.available();
+            byte b[] = new byte[x];
             fis.read(b);
             errorPage = new String(b);
             //close buffers
             fis.close();
             b = null;
-        } catch (Exception ex)  {
-            logger.error("Error reading error page: "+ex);
-        } finally  {
+        } catch (Exception ex) {
+            logger.error("Error reading error page: " + ex);
+        } finally {
         }
-        return errorPage;        
+        return errorPage;
     }
-    
-    public static void showHTMLError (HttpServletResponse response, String content) {
-       
+
+    /**
+     * Inserts the HTML error message in the response
+     * 
+     * @param response servlet HTTP response
+     * 
+     * @param content the HTML error message
+     */
+    public static void showHTMLError(HttpServletResponse response, 
+                                     String content) {
+
         if (content != null) {
-            
+
             // Get writer
             PrintWriter out = null;
-            
+
             try {
-                out = response.getWriter();            
-                
+                out = response.getWriter();
+
                 // Push HTML content
                 if (out != null) {
                     out.flush();
                     out.print(content);
                     out.close();
-                }        
-            }
-            catch (IOException e) {
-                logger.error ("Erro sending HTML message: "+e);
+                }
+            } catch (IOException e) {
+                logger.error("Erro sending HTML message: " + e);
             }
         }
     }
-    
+
 }

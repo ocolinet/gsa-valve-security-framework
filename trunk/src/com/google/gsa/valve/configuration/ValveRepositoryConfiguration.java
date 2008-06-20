@@ -25,7 +25,8 @@ public class ValveRepositoryConfiguration  {
 	private String pattern;
 	private String authN;
 	private String authZ;
-	private boolean failureAllow;
+	private String failureAllow = "false";
+        private String checkAuthN = "true";
 	
 	private Vector<ValveRepositoryParameter>parameters;
 	
@@ -40,7 +41,6 @@ public class ValveRepositoryConfiguration  {
 	public String getParameterValue(String name) {
 		String parameterValue = null;
 		if (parameters == null) {
-			System.out.println("parameters are null");
 			return null;
 		} else {
 			for (int i = 0; i < parameters.size(); i++) {
@@ -64,12 +64,18 @@ public class ValveRepositoryConfiguration  {
 	public void setAuthZ(String authZ) {
 		this.authZ = authZ;
 	}
-	public boolean isFailureAllow() {
+	public String isFailureAllow() {
 		return failureAllow;
 	}
-	public void setFailureAllow(boolean failureAllow) {
+	public void setFailureAllow(String failureAllow) {
 		this.failureAllow = failureAllow;
 	}
+        public String getCheckAuthN() {
+                return checkAuthN;
+        }
+        public void setCheckAuthN(String checkAuthN) {
+                this.checkAuthN = checkAuthN;
+        }
 	public String getId() {
 		return id;
 	}

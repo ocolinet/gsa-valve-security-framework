@@ -11,6 +11,7 @@
 <authCookiePath>/</authCookiePath>
 <authMaxAge>-1</authMaxAge>
 <authCookieName>gsaSSOCookie</authCookieName>
+<refererCookieName>gsaReferer</refererCookieName>
 <searchHost>http://gsa1.google.com</searchHost>
 <!-- add here more search appliance if needed. For example -->
 <!-- <searchHost>http://gsa2.google.com</searchHost> -->
@@ -22,7 +23,7 @@
 <!-- Kerberos config. If you're not using at all just set the first two attributes to false (the rest are discarded) -->
 <kerberos isKerberos="false"
           isNegotiate="false"
-	  krbini="c:\\Tomcat\\conf\\spnego\\krb5.ini"
+	  krbini="c:\\Windows\\krb5.ini"
 	  krbconfig="c:\\Tomcat\\conf\\spnego\\bcsLogin.conf"
 	  krbAdditionalAuthN="false"
 	  krbLoginUrl="http://valve.google.com:5080/valve/loginkrb.jsp"
@@ -36,10 +37,15 @@
 	  sessionCleanup="15"
 	  sendCookies="true"/>
 
+<!-- Saml config -->
+<saml     isSAML="false" 
+          maxArtifactAge="60"
+          samlTimeout="360"/>
+
 <!-- THE NEXT REPOSITORIES ARE JUST EXAMPLES. USE YOUR OWN REPOSITORIES CONFIGURATION -->
 
 <!-- This is an Active Directory integration sample -->
-<repository id="root" pattern="valve.google.com" authN="com.google.gsa.valve.modules.ldap.LDAPUniqueCreds" authZ="" failureAllow="true">
+<repository id="root" pattern="valve.google.com" authN="com.google.gsa.valve.modules.ldap.LDAPUniqueCreds" authZ="" failureAllow="true" checkAuthN="true">
 	
 	<P N="ldapBaseuser" V="dc=enterprise,dc=google,dc=com"/>
 	<P N="ldapHost" V="ldap://ad.google.com:389"/>
@@ -50,7 +56,7 @@
 
 <!-- This is an HTTP Basic sample -->
 <repository id="HTTPBasicAuth" pattern="http://server.google.com:90" 
-	authN="com.google.gsa.valve.modules.httpbasic.HTTPBasicAuthenticationProcess" authZ="com.google.gsa.valve.modules.httpbasic.HTTPBasicAuthorizationProcess" failureAllow="true">
+	authN="com.google.gsa.valve.modules.httpbasic.HTTPBasicAuthenticationProcess" authZ="com.google.gsa.valve.modules.httpbasic.HTTPBasicAuthorizationProcess" failureAllow="true" checkAuthN="true">
 	<P N="HTTPAuthPage" V="http://server.google.com:90/"/>
 </repository>
 

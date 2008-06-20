@@ -24,22 +24,40 @@ import org.apache.commons.digester.Digester;
 import org.apache.log4j.Logger;
 import org.xml.sax.SAXException;
 
-public class ValveConfigurationDigester {
+/**
+ * This is the class that loads the configuration read from config file. It
+ * uses the other classes from the configuration framework in order to make 
+ * the parameters available in run-time.
+ * 
+ * @see ValveConfiguration
+ * @see ValveConfigurationInstance
+ * @see ValveKerberosConfiguration
+ * @see ValveRepositoryConfiguration
+ * @see ValveSAMLConfiguration
+ * @see ValveSessionConfiguration
+ */
 
+public class ValveConfigurationDigester {
+        
+        //logger instance
 	private static Logger logger = null;
 	
+        
+        /**
+         * Class constructor
+         */
 	public ValveConfigurationDigester() {
 		logger = Logger.getLogger(ValveConfigurationDigester.class);
 		logger.debug("Initilise valve configuration digester");
 	}
-	
-	public static void main(String[] args) {
-
-	}
-	
+		
 	
 	/**
-	 * @param args
+	 * Executes the parameter reading process to get all the configuration
+         * attributes present in the security framework.
+         * 
+         * @param configurationFile configuration file path
+         * @return the valve configuration
 	 */
 	public ValveConfiguration run(String configurationFile) {
 		
@@ -49,7 +67,8 @@ public class ValveConfigurationDigester {
 		try {
 			Digester digester = new Digester();
 			digester.setValidating( false );
-
+                        
+                        //Load individual parameters
 			digester.addObjectCreate( "GSAValveConfiguration", ValveConfiguration.class );
 			digester.addBeanPropertySetter( "GSAValveConfiguration/authCookieDomain", "authCookieDomain" );
 			digester.addBeanPropertySetter( "GSAValveConfiguration/authenticationProcessImpl", "authenticationProcessImpl" );
@@ -57,8 +76,9 @@ public class ValveConfigurationDigester {
 			digester.addBeanPropertySetter( "GSAValveConfiguration/authorizationProcessImpl", "authorizationProcessImpl" );
 			digester.addBeanPropertySetter( "GSAValveConfiguration/authenticateServletPath", "authenticateServletPath" );
 			digester.addBeanPropertySetter( "GSAValveConfiguration/authCookiePath", "authCookiePath" );
-			digester.addBeanPropertySetter( "GSAValveConfiguration/authMaxAge", "authMaxAge" );
+			digester.addBeanPropertySetter( "GSAValveConfiguration/authMaxAge", "authMaxAge" );		        		    
                         digester.addBeanPropertySetter( "GSAValveConfiguration/authCookieName", "authCookieName" );		    
+		        digester.addBeanPropertySetter( "GSAValveConfiguration/refererCookieName", "refererCookieName" );
 			digester.addBeanPropertySetter( "GSAValveConfiguration/loginUrl", "loginUrl" );
                         digester.addBeanPropertySetter( "GSAValveConfiguration/maxConnectionsPerHost", "maxConnectionsPerHost" );
                         digester.addBeanPropertySetter( "GSAValveConfiguration/maxTotalConnections", "maxTotalConnections" );
@@ -71,7 +91,7 @@ public class ValveConfigurationDigester {
                         //Set value of the parameter for the addSearchHost method
                         digester.addCallParam("GSAValveConfiguration/searchHost", 0);
                         
-                        //CLAZARO: new vars for Krb and Sessions
+                        //Krb, Sessions and SAML
                         digester.addObjectCreate("GSAValveConfiguration/kerberos", ValveKerberosConfiguration.class );
                         digester.addSetProperties("GSAValveConfiguration/kerberos", "isKerberos", "isKerberos" );
                         digester.addSetProperties("GSAValveConfiguration/kerberos", "isNegotiate", "isNegotiate" );
@@ -89,10 +109,19 @@ public class ValveConfigurationDigester {
                         digester.addSetProperties("GSAValveConfiguration/sessions", "isSessionEnabled", "isSessionEnabled" );
                         digester.addSetProperties("GSAValveConfiguration/sessions", "sessionTimeout", "sessionTimeout" );
                         digester.addSetProperties("GSAValveConfiguration/sessions", "sessionCleanup", "sessionCleanup" );
-                        digester.addSetProperties("GSAValveConfiguration/sessions", "sendCookies", "sendCookies" );                                                
-                        digester.addSetNext( "GSAValveConfiguration/sessions", "setSessionConfig" );                                                
-
+                        digester.addSetProperties("GSAValveConfiguration/sessions", "sendCookies", "sendCookies" );
+                                                
+                        digester.addSetNext( "GSAValveConfiguration/sessions", "setSessionConfig" );
+                        
+                        
+                        digester.addObjectCreate("GSAValveConfiguration/saml", 
+                                 ValveSAMLConfiguration.class );
+                        digester.addSetProperties("GSAValveConfiguration/saml", "isSAML", "isSAML" );
+                        digester.addSetProperties("GSAValveConfiguration/saml", "maxArtifactAge", "maxArtifactAge" );
+                        digester.addSetProperties("GSAValveConfiguration/saml", "samlTimeout", "samlTimeout" );
+                        digester.addSetNext( "GSAValveConfiguration/saml", "setSAMLConfig" );
 			
+                        
 			digester.addObjectCreate( "GSAValveConfiguration/repository", 
                                      ValveRepositoryConfiguration.class );
 			digester.addSetProperties("GSAValveConfiguration/repository", "id", "id" );
@@ -100,6 +129,7 @@ public class ValveConfigurationDigester {
 			digester.addSetProperties( "GSAValveConfiguration/repository", "authN", "authN" );
 			digester.addSetProperties( "GSAValveConfiguration/repository", "authZ", "authZ" );
 			digester.addSetProperties( "GSAValveConfiguration/repository", "failureAllow", "failureAllow" );
+                        digester.addSetProperties( "GSAValveConfiguration/repository", "checkAuthN", "checkAuthN" );
 			
 			digester.addObjectCreate( "GSAValveConfiguration/repository/P", 
                                      ValveRepositoryParameter.class );
@@ -109,11 +139,10 @@ public class ValveConfigurationDigester {
 			
 			digester.addSetNext( "GSAValveConfiguration/repository", "addRepository" );
 			
+                        //Read and parse the file
 			File inputFile = new File( configurationFile );
 			valveConfig = (ValveConfiguration)digester.parse( inputFile );
 			 
-			//Logging out
-                        //valveConfig.logValveConfiguration();
 			
 		} catch (IOException ioexp) {
 			logger.error("Failed to read from configuration file: " + configurationFile, ioexp);
@@ -122,7 +151,8 @@ public class ValveConfigurationDigester {
 			logger.error("SAX Exception when reading configuration file: "+e.getMessage(),e);
 			e.printStackTrace();
 		}
-		return valveConfig;
+		
+                return valveConfig;
 		
 		
 	}

@@ -1,8 +1,16 @@
 <html>
 	<head>
-		<title>Valve Toolkit Samples Login Page</title>
+		<title>Login - Login form</title>
 	</head>
 	<body>
+	
+	<!--  DESCRIPTION
+	      login.jsp is the default login page for Form Based AuthN approach
+	      You can customize it and change its name as long as you update it in config files
+	-->
+	
+	<!-- Customize Look and Feel -->
+	
 		<center>
 		<form method="post" action="/valve/Authenticate" name="login_form">
 			<table width="300" border="0" align="center" cellpadding="2" cellspacing="1">

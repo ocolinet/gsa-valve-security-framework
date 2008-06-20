@@ -29,7 +29,12 @@ import com.google.gsa.valve.configuration.ValveConfiguration;
 
 import java.util.Vector;
 
-
+/**
+ * Authentication Process Interface
+ * <p>
+ * Authentication modules have to implement it
+ * 
+ */
 public interface AuthenticationProcessImpl {
 	
 	

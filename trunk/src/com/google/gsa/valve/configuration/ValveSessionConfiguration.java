@@ -18,7 +18,7 @@ package com.google.gsa.valve.configuration;
 
 public class ValveSessionConfiguration {
     
-    private String isSessionEnabled = null;
+    private String isSessionEnabled = "false";
     private String sessionTimeout = null;
     private String maxSessionAge = null;
     private String sessionCleanup = null;

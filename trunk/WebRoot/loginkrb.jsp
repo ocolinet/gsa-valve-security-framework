@@ -1,8 +1,19 @@
 <html>
 	<head>
-		<title>Valve Toolkit Samples Login Page</title>
+		<title>Login - Double authentication login form</title>
 	</head>
+	
+	<!-- DESCRIPTION
+	     loginkrb.jsp is the default login page when using Form Based AuthN (SSO) approach
+	     with Kerberos and you choose to have double authentication (username/password thru a login form)
+	     It's similar to loginkrbSAML.jsp but for Forms-based scenarios
+	     You can customize it and change its name as long as you update it in config files
+	-->
+		
 	<body>
+	
+	<!-- Customize Look and Feel -->
+	
 		<center>
 		<form method="post" action="/valve/kerberos" name="login_form">
 			<table width="300" border="0" align="center" cellpadding="2" cellspacing="1">

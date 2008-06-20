@@ -1,3 +1,5 @@
+This configuration step only applies for Forms Based Authentication (SSO)
+
 Config >= v1.3
 <Valve className="com.google.gsa.Valve" gsaValveConfigPath="$TOMCAT_HOME/common/classes/gsaValveConfig.xml"/>
 
