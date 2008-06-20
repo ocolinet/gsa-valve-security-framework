@@ -30,6 +30,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 
+/**
+ * Authorization process interface
+ * <p>
+ * Authorization modules have to implement it
+ * 
+ */
 public interface AuthorizationProcessImpl {
 	
 	//version 1.2 and before

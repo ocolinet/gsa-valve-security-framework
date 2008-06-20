@@ -1,9 +1,16 @@
 <html>
   <head>
-    <title>Valve Toolkit Samples Login Page</title>
+    <title>Login - Kerberos crawling form</title>
   </head>
   <body>
-		
+  
+   <!--  DESCRIPTION
+   	 logincrawlerkrb.jsp is the default login page for crawler (GSA) when 
+         using Form Based AuthN approach and you would like the crawling process
+         to be driven by the GSA, instead of injecting the content 
+	 You can customize it and change its name as long as you update it in config files
+   -->		
+   
    <form method="post" action="/valve/kerberos" name="login_form">					
      <table width="300" border="0" align="center" cellpadding="2" cellspacing="1">
       <tr>

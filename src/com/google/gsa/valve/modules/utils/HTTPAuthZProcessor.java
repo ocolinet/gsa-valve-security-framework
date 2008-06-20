@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 
-import java.net.URL;
 import java.net.URLDecoder;
 
 import org.htmlparser.Parser;
@@ -40,152 +39,264 @@ import org.apache.log4j.Logger;
 
 import org.htmlparser.util.ParserException;
 
+/**
+ * It processes the HTTP response when it's needed to rewrite URLs and send 
+ * the content back to the requestor through the Security Framework
+ * 
+ */
 public class HTTPAuthZProcessor {
 
     //logger
-    private static Logger logger = null;
-    
+    private static Logger logger = Logger.getLogger(HTTPAuthZProcessor.class);
+
     //Content-Type
     private static String contentType = null;
-    
+
     //Buffer size. Tune this value if you see bad performance
-    private static final int BUFFER_BLOCK_SIZE = 4096; 
-    
+    private static final int BUFFER_BLOCK_SIZE = 4096;
+
+    /**
+     * Class constructor
+     * 
+     */
     public HTTPAuthZProcessor() {
-        //set logger
-        setLogger ();
     }
-    
-    public static void setLogger () {
-        //set logger
-        if (logger == null) {
-            logger = Logger.getLogger(HTTPAuthZProcessor.class);
-        }
-    }
-    
-    public static void processResponse (HttpServletResponse response, HttpMethodBase method, String url, String loginUrl) {
-        
-        setLogger ();
-        
-        logger.debug("Processing Response");                
+
+    /**
+     * Processes the HTTP response to check the content type and parsers then 
+     * the document depending on the kind of content.
+     * 
+     * @param response HTTP response
+     * @param method HTTP method
+     * @param url document url
+     * @param loginUrl login url
+     */
+    public static void processResponse(HttpServletResponse response, 
+                                       HttpMethodBase method, String url, 
+                                       String loginUrl) {
+
+        logger.debug("Processing Response");
+
         contentType = method.getResponseHeader("Content-Type").getValue();
-        logger.debug("Content Type is... "+contentType);
-        if (contentType != null) {            
-            if (contentType.startsWith ("text/html")) {
-                //content Type is HTML
-                try {
-                    //process HTML document
-                    logger.debug("Document is HTML. Processing");
-                    processHTML (response, method, url, loginUrl);
-                } catch (IOException e) {
-                    logger.error("I/O Error processing HTML document: "+e.getMessage(),e);
-                } catch (ParserException e) {
-                    logger.error("Parsering Error processing HTML document: "+e.getMessage(),e);                
-                } catch (Exception e) {
-                    logger.error("Error processing HTML document: "+e.getMessage(),e);
+        logger.debug("Content Type is... " + contentType);
+        if (contentType != null) {
+            if (contentType.startsWith("text/html")) { //content Type is HTML
+                //Check if HTML has to be processed (URLs rewritten)
+                boolean processHTML = AuthorizationUtils.isProcessHTML();
+                if (processHTML) {
+                    logger.debug("It's an HTML doc that is going to be processed (URLs rewritten)");
+                    try {
+                        //process HTML document
+                        logger.debug("Document is HTML. Processing");
+                        processHTML(response, method, url, loginUrl);
+                    } catch (IOException e) {
+                        logger.error("I/O Error processing HTML document: " + 
+                                     e.getMessage(), e);
+                    } catch (ParserException e) {
+                        logger.error("Parsering Error processing HTML document: " + 
+                                     e.getMessage(), e);
+                    } catch (Exception e) {
+                        logger.error("Error processing HTML document: " + 
+                                     e.getMessage(), e);
+                    }
+                } else {
+                    logger.debug("It's an HTML doc that is NOT going to be processed (return content as is)");
+                    try {
+                        returnHTML(response, method, url, loginUrl);
+                    } catch (IOException e) {
+                        logger.error("I/O Error returning HTML document: " + 
+                                     e.getMessage(), e);
+                    } catch (Exception e) {
+                        logger.error("Error returning HTML document: " + 
+                                     e.getMessage(), e);
+                    }
                 }
             } else { //non html document type
                 //content Type is NOT HTML                                                                                                                                                                                                                                                                                            
                 try {
                     logger.debug("Document is not HTML. Processing");
                     //Set document's name
-                    setDocumentName (response, method);
+                    setDocumentName(response, method);
                     //process non HTML document
-                    processNonHTML (response, method);
+                    processNonHTML(response, method);
                 } catch (IOException e) {
-                    logger.error("I/O Error processing NON HTML document: "+e.getMessage(),e);
+                    logger.error("I/O Error processing NON HTML document: " + 
+                                 e.getMessage(), e);
                 } catch (Exception e) {
-                    logger.error("Error processing NON HTML document: "+e.getMessage(),e);
+                    logger.error("Error processing NON HTML document: " + 
+                                 e.getMessage(), e);
                 }
-            }                                                                                                                    
+            }
         } // End contenttype check not null                                                                
     }
-    
-    public static void setDocumentName (HttpServletResponse response, HttpMethodBase method) {
+
+    /**
+     * Sets the document name putting it into the Content-Disposition header
+     * 
+     * @param response HTTP response
+     * @param method HTTP method
+     */
+    public static void setDocumentName(HttpServletResponse response, 
+                                       HttpMethodBase method) {
         response.setHeader("Content-Type", contentType);
         //Set the file name properly
-        String []tabpath=(method.getPath()).split("/");
-        String fileName=tabpath[tabpath.length-1];
+        String[] tabpath = (method.getPath()).split("/");
+        String fileName = tabpath[tabpath.length - 1];
         String decodeFileName = null;
         try {
-            decodeFileName = URLDecoder.decode(fileName, "UTF-8");            
+            decodeFileName = URLDecoder.decode(fileName, "UTF-8");
         } catch (Exception e) {
-            logger.error("Exception decoding URL: "+e);
+            logger.error("Exception decoding URL: " + e);
             decodeFileName = fileName;
         }
-        response.setHeader("Content-Disposition","inline; filename=" + decodeFileName);
+        response.setHeader("Content-Disposition", 
+                           "inline; filename=" + decodeFileName);
     }
-    
-    public static void processHTML (HttpServletResponse response, HttpMethodBase method, String url, String loginUrl) throws IOException, 
-                                                    ParserException {
+
+    /**
+     * If the document is HTML, this method processes its content in order to 
+     * rewrite the URLs it includes
+     * 
+     * @param response HTTP response
+     * @param method HTTP method
+     * @param url document url
+     * @param loginUrl login url
+     * 
+     * @throws IOException
+     * @throws ParserException
+     */
+    public static void processHTML(HttpServletResponse response, 
+                                   HttpMethodBase method, String url, 
+                                   String loginUrl) throws IOException, 
+                                                           ParserException {
         logger.debug("Processing an HTML document");
-        
+
         String stream = null;
         Parser parser = null;
         NodeVisitor visitor = null;
-        
+
         // Retrieve HTML stream
-        stream = readFully(new InputStreamReader(method.getResponseBodyAsStream()));
-        
+        stream = 
+                readFully(new InputStreamReader(method.getResponseBodyAsStream()));
+
         // Protection
         if (stream != null) {
             logger.debug("Stream content size: " + stream.length());
             // Parse HTML stream to replace any links to include the path to the valve
             parser = Parser.createParser(stream, null);
-        
+
             // Instantiate visitor
             visitor = new HTTPVisitor(url, loginUrl);
             // Parse nodes
             parser.visitAllNodesWith(visitor);
-        
+
             // Get writer
             PrintWriter out = response.getWriter();
-        
+
             // Push HTML content
             if (out != null) {
                 out.flush();
-                out.print(((HTTPVisitor) visitor).getModifiedHTML());
+                out.print(((HTTPVisitor)visitor).getModifiedHTML());
                 out.close();
-                logger.debug("Wrote: " + ((HTTPVisitor) visitor).getModifiedHTML().length());
+                logger.debug("Wrote: " + 
+                             ((HTTPVisitor)visitor).getModifiedHTML().length());
             }
             //  Garbagge collect
             stream = null;
+            parser = null;
+            visitor = null;
         }
     }
-    
-    public static void processNonHTML (HttpServletResponse response, HttpMethodBase method) throws IOException {
-        
-        logger.debug("Processing a non HTML document");                        
 
-        InputStream is = new BufferedInputStream(method.getResponseBodyAsStream());
-         
-        //HTTP Output
-        OutputStream os = response.getOutputStream();              
-         
-         byte[] buffer = new byte[BUFFER_BLOCK_SIZE];
-         int read = is.read(buffer);
-         while (read >= 0) {
-             if (read > 0)    {
-                 os.write(buffer, 0, read);
-             }
-             read = is.read(buffer);
-         }
+    /**
+     * Includes the HTML document in the response
+     * 
+     * @param response HTTP response
+     * @param method HTTP method
+     * @param url document url
+     * @param loginUrl login url
+     * 
+     * @throws IOException
+     */
+    public static void returnHTML(HttpServletResponse response, 
+                                  HttpMethodBase method, String url, 
+                                  String loginUrl) throws IOException {
 
-         is.close();
-         os.close();
+        logger.debug("Returning an HTML document");
+
+        //Get writer
+        PrintWriter out = null;
+
+        try {
+            out = response.getWriter();
+            if (out != null) {
+                //set content
+                out.print(method.getResponseBodyAsString());
+                //close writer
+                out.close();
+            }
+        } catch (Exception e) {
+            logger.error("Error when returning HTML content: " + 
+                         e.getMessage(), e);
+        }
+
     }
-    
+
+    /**
+     * If the document is non HTML, this method processes its content in order to 
+     * rewrite the URLs it includes
+     * 
+     * @param response
+     * @param method
+     * @throws IOException
+     */
+    public static void processNonHTML(HttpServletResponse response, 
+                                      HttpMethodBase method) throws IOException {
+
+        logger.debug("Processing a non HTML document");
+
+        InputStream is = 
+            new BufferedInputStream(method.getResponseBodyAsStream());
+
+        //HTTP Output
+        OutputStream os = response.getOutputStream();
+
+        byte[] buffer = new byte[BUFFER_BLOCK_SIZE];
+        int read = is.read(buffer);
+        while (read >= 0) {
+            if (read > 0) {
+                os.write(buffer, 0, read);
+            }
+            read = is.read(buffer);
+        }
+
+        //protection
+        buffer = null;
+
+        is.close();
+        os.close();
+    }
+
+    /**
+     * Reads the file in blocks for non-HTML documents
+     * 
+     * @param input the input reader
+     * 
+     * @return the content block
+     * 
+     * @throws IOException
+     */
     public static String readFully(Reader input) throws IOException {
-        BufferedReader bufferedReader = input instanceof BufferedReader 
-           ? (BufferedReader) input
-           : new BufferedReader(input);
+        BufferedReader bufferedReader = 
+            input instanceof BufferedReader ? (BufferedReader)input : 
+            new BufferedReader(input);
         StringBuffer result = new StringBuffer();
-        char[] buffer = new char[BUFFER_BLOCK_SIZE];        
+        char[] buffer = new char[BUFFER_BLOCK_SIZE];
         int charsRead;
         while ((charsRead = bufferedReader.read(buffer)) != -1) {
             result.append(buffer, 0, charsRead);
-        }              
+        }
         return result.toString();
-    }        
-     
+    }
+
 }

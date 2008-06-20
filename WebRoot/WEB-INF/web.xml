@@ -10,6 +10,14 @@
         <servlet-name>Kerberos</servlet-name>
         <servlet-class>com.google.gsa.Kerberos</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>SAMLAuthNResolve</servlet-name>
+        <servlet-class>com.google.gsa.valve.saml.authn.SAMLAuthNResolve</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>SAMLAuthZ</servlet-name>
+        <servlet-class>com.google.gsa.valve.saml.authz.SAMLAuthZ</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>Authenticate</servlet-name>
         <url-pattern>/Authenticate</url-pattern>
@@ -17,6 +25,14 @@
     <servlet-mapping>
         <servlet-name>Kerberos</servlet-name>
         <url-pattern>/kerberos</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SAMLAuthNResolve</servlet-name>
+        <url-pattern>/samlauthnresolve</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SAMLAuthZ</servlet-name>
+        <url-pattern>/samlauthz</url-pattern>
     </servlet-mapping>
     <mime-mapping>
         <extension>html</extension>
@@ -26,10 +42,16 @@
         <extension>txt</extension>
         <mime-type>text/plain</mime-type>
     </mime-mapping>    
-    <!--Error Code Section. Do not setup here an entry for Error 401-->
+    <!--Error Code Section. Do not set up here 401 error-->
     <error-page>
         <error-code>500</error-code>
         <location>/WEB-INF/error/500.html</location>
-    </error-page> 
+    </error-page>
+    <!-- Valve Config Location. Only if SAML is enabled -->
+    <env-entry>
+        <description>GSA Valve Config Path</description>
+        <env-entry-name>gsaValveConfigPath</env-entry-name>
+        <env-entry-value>C:\Program Files\Tomcat 5.5\common\classes\gsaValveConfig.xml</env-entry-value>
+        <env-entry-type>java.lang.String</env-entry-type>     
+    </env-entry>
 </web-app>
-

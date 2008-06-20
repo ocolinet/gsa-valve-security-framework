@@ -18,19 +18,67 @@
       which may put at risk the deployment of search technology. 
     </p>
     <p>
-      The GSA Valve Security Framework was designed to answer both of these
-      issues. It exposes a global authentication capability to the search user
-      and then loads transparently the sets of credentials that are relevant to
-      each indexed sources. It is a framework that can easily be extended to
-      support the specifics of new repositories in terms of authentication and
-      authorization processes. This authentication and authorization framework acts as a content proxy and can be considered as a quick, simple and low-cost alternative to a single sign-on (SSO) system. It can be integrated as well with third-party SSO solutions in those situations where the corporate SSO doesn&rsquo;t secure all the searchable applications. <br>
-    </p>
+      The GSA Valve Security Framework was designed to answer both of these issues. It exposes a global authentication capability to the search user and then loads transparently the sets of credentials that are relevant to each indexed sources. It is a framework that can easily be extended to support the specifics of new repositories in terms of authentication and authorization processes. You can easily extend it creating new authentication and authorization modules that offer new capabilities making the Security Framework fully working with your custom content repositories.
+
+
+
+    </p><p>
+      This authentication and authorization framework acts as a content proxy
+      and can be considered as a quick, simple and low-cost alternative to a
+      single sign-on (SSO) system. It can be integrated as well with third-party
+      SSO solutions in those situations where the corporate SSO doesn&rsquo;t
+      secure all the searchable applications. 
+    </p><p>
+      This framework supports two different interfaces for serving content in
+      the search appliance:
+      <ul> 
+      <li>
+      <b>Forms Based Authentication (Web Single
+      Sign-On)</b>: the primary frontend that was supported from the beginning was
+      Forms Based Authentication as it&rsquo;s known in the GSA terminology. It
+      really acts as a Single Sign-On, as the user has this experience and all
+      the request are treated by this frontend. 
+      </li>
+      <li>
+      <b>SAML (Security Assertion
+      Markup Language)</b>: this is a security standard supported by the GSA. Since
+      GSA Security Framework version 2, it&rsquo;s offered a SAML-enabled
+      frontend.
+      </li>
+      </ul>
+    </p><br>
     <h3>
       Latest Changes
-    </h3>
-    <p>
-      <strong>Release 1.4.1 - March 19 2008</strong> </p>
-    <ul>
+    </h3><p>
+      <strong>Release 2.0 - June 18 2008</strong>
+    </p><ul>
+      <li>
+         SAML frontend that can be used as an alternative mechanism&nbsp;to&nbsp;the&nbsp;Forms&nbsp;Based&nbsp;one to be integrated with the Google Search Appliance (GSA). It supports exactly the same scenarios as the Forms Based one does. 
+      </li>
+      <li>
+        The root Authentication and Authorization processes have been redisigned to be more scalable.
+      </li>
+      <li>
+        A new attribute at the repository level, checkAuthN, permits not to process any authentication classes. This is useful when the authentication module created for integrating a repository, is not necessary to be processed due to whatever reason (it was already processed by another module, only authZ oriented, ...)
+      </li>
+      <li>
+        The referer cookie can be now set&nbsp;up in the config file.
+      </li>
+      <li>
+        Authentication cookie&nbsp;content&nbsp;is&nbsp;now&nbsp;URL encoded.
+      </li>
+      <li>
+        Code documentation
+      </li>
+      <li>
+        Session implementation has been improved to solve some issues.
+      </li>
+      <li>
+        Some other minor issues&nbsp;found&nbsp;in&nbsp;projects have been solved.
+      </li>
+    </ul><p>
+      <strong>Release 1.4.1 - March 19 2008</strong>
+    </p><ul>
       <li>
         Error management feature added. It shows customized errors messages
       </li>
@@ -114,44 +162,13 @@
             Valve Security Framework&nbsp; <br>
     </li>
     </ul>
-	<h3>Application Deployment </h3>
-    <p>GSA Valve Security Framework is a standard Java web application thatresides with an application server, in this case Tomcat and in configured as a Valve (filter) within Tomcat, hence its name. A Valve element within Tomcat represents a component that will be inserted into the request processing pipeline for the associated Catalina container (Engine, Host, or Context). Individual Valves have distinct processing capabilities, and in this case its main function is to evaluate a user&rsquo;s permission to access a piece of content. It has been tested on Tomcat but theoretically it can run on any standard J2EE web container.</p>
-    <p>The Tomcat version you can use has to be 5.5 release or upwards. It's recommended to use JDK 1.6.X as some of the features are better implemented with this version, but you would be able to use JDK 1.5.X as well if you're not making use of the Kerberos features. </p>
-    <p>The application  uses some external open source libraries, most of them are Apache ones, that you have to download them before you deploy it. These libraries are:</p>
-    <ul>
-      <li><em>Apache Log4J </em> (1.2.14 or upwards) &lt; <a href="http://logging.apache.org/log4j/">http://logging.apache.org/log4j/ </a>&gt; </li>
-      <li><em>Apache Jakarta RegExp </em> (1.5 or upwards) &lt; <a href="http://jakarta.apache.org/regexp/">http://jakarta.apache.org/regexp/ </a>&gt; </li>
-      <li><em>Apache Commons Httpclient </em> (3.0.1) &lt; <a href="http://hc.apache.org/">http://hc.apache.org/ </a>&gt; </li>
-      <li><em>Apache Commons Collections </em> (3.2 or upwards) &lt; <a href="http://commons.apache.org/collections/">http://commons.apache.org/collections/ </a>&gt; </li>
-      <li><em>Apache Commons EL </em> (1.0) &lt; <a href="http://commons.apache.org/el/">http://commons.apache.org/el/ </a>&gt; </li>
-      <li><em>Apache Xerces </em>(2.9.0) &lt; <a href="http://xerces.apache.org/xerces2-j/">http://xerces.apache.org/xerces2-j/ </a>&gt; </li>
-      <li><em>Apache Commons Digester </em> (1.8 or upwards) &lt; <a href="http://commons.apache.org/digester/">http://commons.apache.org/digester/ </a>&gt; </li>
-      <li><em>Apache Commons BeanUtils </em> (1.7 or upwards): &lt; <a href="http://commons.apache.org/beanutils/">http://commons.apache.org/beanutils/ </a>&gt; </li>
-      <li><em>Apache Commons Codec </em> (1.3) &lt; <a href="http://commons.apache.org/codec/">http://commons.apache.org/codec/ </a>&gt; </li>
-      <li><em>Html Parser </em> (1.6) &lt; <a href="http://htmlparser.sourceforge.net/">http://htmlparser.sourceforge.net/ </a>&gt; </li>
-      <li><em>JDom </em> (1.1) &lt; <a href="www.jdom.org">www.jdom.org </a>&gt; </li>
-    </ul>
-    <p>It also uses some Google libraries that offer some external functionality. You can find them in the code repository:</p>
-    <ul>
-      <li><em>GSA Valve Kerberos libraries </em>: Kerberos implementation for SPNEGO services in the Valve &lt;ValveKrb5.jar&gt; </li>
-      <li><em>GSA Valve Session libraries </em>: Valve session managements &lt;ValveSessions.jar&gt; </li>
-      <li><em>Sniffer </em> (1.3): Http libraries that act as a standard browser &lt;Sniffer.jar or Sniffer_1.3.jar&gt; </li>
-    </ul>
-    <p>Other libraries would be needed if they are used in the custom connectors, for example if you're using LiveLink then you should include the LiveLink API (lapi.jar)</p>
-    <p>Libraries have to be deployed at the following locations (except Valve Session library that should be deploy at $CATALINA_HOME/common/lib):</p>
-    <ul>
-      <li>$CATALINA_HOME/server/libs</li>
-      <li>$CATALINA_HOME/webapps/valve/WEB_INF/libs </li>
-    </ul>
-    <p>As a result of the project built (you can use the Ant's build.xml) then you'll have a zip file that contains the following directories which already exist in Tomcat that have to be copy at CATALINA_HOME:</p>
-    <ul>
-      <li>common</li>
-      <li>server</li>
-      <li>webapps</li>
-    </ul>
-    <p>Finally the Tomcat instance has to be configured to process the Valve. Add the following context to &lt;CATALINA_HOME&gt;/conf/server.xml<br>
-    <em>&lt;Valve className=&quot;com.google.gsa.Valve&quot; gsaValveConfigPath=&quot;{full path to valve configuration file}&quot;/&gt;</em></p>
-    <p>The configuration is driven by a flexible XML file where you can define tons of different repositories and architecture. A typical valve configuration file path is at $CATALINA_HOME/classes/gsaValveConfig.xml </p>
-    <p>You can find more information on how to install and configure this application at the Installation and Configuration guide. There are also some other documents on specific Valve configuration tasks. </p>
+    <br>
+	<h3>More&nbsp;Information </h3>
+    <p>
+      Check the latest documentation available at &lt;<a href="http://code.google.com/p/gsa-valve-security-framework/"> http://code.google.com/p/gsa-valve-security-framework/</a>&gt; in order to know how the application can be deployed and get more information.
+    </p>
+    <p>
+      &nbsp;
+    </p>
 </body>
 </html>
