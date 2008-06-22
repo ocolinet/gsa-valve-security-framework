@@ -16,25 +16,60 @@
 
 package com.google.gsa.valve.configuration;
 
+/**
+ * It represents a Repository parameter. Each content repository can be 
+ * configured with some parameters that sends setup information to the 
+ * repository's AuthN/AuthZ modules.
+ * 
+ */
 public class ValveRepositoryParameter {
-	
-        private String name;
-	private String value;
-	
-	public ValveRepositoryParameter() {}
-	
-	public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
-	public String getValue() {
-		return value;
-	}
-	public void setValue(String value) {
-		this.value = value;
-	}
-	
+
+    //Parameter attributes
+    private String name;
+    private String value;
+
+    /**
+     * Class constructor
+     * 
+     */
+    public ValveRepositoryParameter() {
+    }
+
+    /**
+     * Gets the parameter's name
+     * 
+     * @return parameter's name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Sets the parameter's name
+     * 
+     * @param name parameter's name
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Gets the parameter's value
+     * 
+     * @return parameter's value
+     */
+    public String getValue() {
+        return value;
+    }
+
+    /**
+     * Sets the parameter's value
+     * 
+     * @param value parameter's value
+     */
+    public void setValue(String value) {
+        this.value = value;
+    }
+
 
 }
