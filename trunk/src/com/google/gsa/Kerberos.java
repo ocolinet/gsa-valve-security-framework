@@ -497,11 +497,16 @@ public class Kerberos extends HttpServlet {
 
                     //set isNegotiate equal true (it authenticates the user thru kerberos ticket)                                                                                    
                     isNegotiate = true;
-
+                    
+                    String refererCookieValue = null;
+                    if (gsaRefererCookie != null) {
+                        refererCookieValue = new String (gsaRefererCookie.getValue());
+                    }
+                    
                     //authenticate user
                     statusCode = 
                             krbAuthentication(request, response, krbCookies, 
-                                              gsaRefererCookie.getValue(), 
+                                              refererCookieValue, 
                                               creds, isNegotiate);
 
                     // Protection: check status code
@@ -545,7 +550,7 @@ public class Kerberos extends HttpServlet {
                             statusCode = 
                                     nonKrbAuthentication(request, response, 
                                                          nonKrbCookies, 
-                                                         gsaRefererCookie.getValue(), 
+                                                         refererCookieValue, 
                                                          creds);
 
                             //check if the status code is indeterminate

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="ISO-8859-1" ?>
-<webProcess name="authent-doc" xmlns="http://www.google.com/enterprise/gsa">
-   <request>
-    	<type>GET</type>
-      	<URL>http://213.223.65.98:8080/gsaDctmCrawl/Authorise</URL>
-   </request>
-</webProcess>
