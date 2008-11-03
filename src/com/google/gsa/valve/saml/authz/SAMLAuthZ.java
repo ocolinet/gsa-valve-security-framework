@@ -639,17 +639,46 @@ public class SAMLAuthZ extends HttpServlet {
      */
     public ValveConfiguration getValveConfig() {
 
-        ValveConfiguration valveConfig = null;
+        ValveConfiguration valveConfig = null;                
 
         try {
             valveConfig = ValveConfigurationInstance.getValveConfig();
         } catch (ValveConfigurationException e) {
-            logger.error("Configuration Exception when getting maxArtifactAge: " + 
-                         e);
+            logger.debug("Config file instance is not readable: " + 
+                         e.getMessage());                                    
+            
+            valveConfig = readValveConfig ();
+            
         }
+        
+        
 
         return valveConfig;
     }
+    
+    /**
+     * Reads the Valve config file in case it doesn't exist. This is used when 
+     * the Valve Config instance is not readable
+     * 
+     * @return valve configuration
+     */
+    private ValveConfiguration readValveConfig () {
+        
+        ValveConfiguration valveConfig = null;
+        
+        try {
+            String gsaValveConfigPath = ValveUtils.readValveConfigParameter();
+            logger.debug ("Reading config file... Config file located at: " + gsaValveConfigPath);
+            
+            valveConfig = ValveConfigurationInstance.getValveConfig(gsaValveConfigPath);
+        } catch (ValveConfigurationException e) {
+            logger.error ("Configuration Exception when reading config file: "+e.getMessage(),e);
+        }
+        
+        return valveConfig;
+        
+    }
+    
 
     /**
      * Class that holds the authorization decision query to take a security 

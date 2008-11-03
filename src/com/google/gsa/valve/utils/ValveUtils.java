@@ -27,6 +27,8 @@ import java.net.URISyntaxException;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
+import javax.naming.NamingException;
+
 import javax.servlet.http.Cookie;
 
 import javax.servlet.http.HttpServletRequest;
@@ -44,6 +46,10 @@ public class ValveUtils {
 
     //Request GSA Cookie
     private static final String REQUESTGSA_COOKIE = "gsaRequestHost";
+    
+    //Valve Config Parameter
+    private static final String VALVE_CONFIG = "gsaValveConfigPath";
+    
 
     //Logger
     private static Logger logger = Logger.getLogger(ValveUtils.class);
@@ -335,6 +341,34 @@ public class ValveUtils {
         */
 
         return statusCode;
+    }
+    
+    
+    /**
+     * Valve Config parameter reading process
+     * 
+     * @return Valve Config File Path
+     */
+    public static String readValveConfigParameter () {        
+        
+        //Naming context
+        javax.naming.Context ctx;
+        javax.naming.Context env;
+        
+        //Valve Config Path
+        String gsaValveConfigPath = null;
+        
+        try {
+            ctx = new javax.naming.InitialContext();
+            env = (javax.naming.Context)ctx.lookup("java:comp/env");
+            //Get gsaValveConfigPath
+            gsaValveConfigPath = (String) env.lookup(VALVE_CONFIG);
+        } catch (NamingException e) {
+            logger.error ("Naming Exception during Config File param reading: " +
+            e.getMessage(), e);
+        }
+        
+        return gsaValveConfigPath;
     }
 
 }
