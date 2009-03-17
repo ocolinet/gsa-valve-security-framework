@@ -151,6 +151,10 @@ public class ValveUtils {
             }
         } else {
             logger.error("No cookies to read REQUESTGSA_COOKIE from");
+            Vector searchHosts = valveConf.getSearchHosts();
+            if (searchHosts != null) {
+                returnUrl = searchHosts.elementAt(0) + returnPath;
+            }
         }
 
         return returnUrl;
