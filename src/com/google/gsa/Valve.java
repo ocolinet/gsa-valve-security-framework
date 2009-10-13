@@ -914,10 +914,16 @@ public class Valve extends ValveBase {
                     // Protection
                     if (returnPath.startsWith("/search?")) {
                         logger.debug("Request is for search, need to redirect back to the GSA");
-                        redirectURI = 
-                                ValveUtils.getGSAHost(returnPath, valveConf, 
-                                                      cookies);
 
+                        try {
+                            redirectURI =
+                                ValveUtils.getGSAHost(returnPath, valveConf,
+                                                      cookies);
+                        } catch (ValveConfigurationException e) {
+                            logger.error ("Configuration error: "+ e.getMessage(),e);
+                            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            return;
+                        }
                     }
 
                     // Instantiate referer cookie

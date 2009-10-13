@@ -78,36 +78,24 @@ import org.apache.log4j.Logger;
 public class Kerberos extends HttpServlet {
 
     //logger
-    private static Logger logger = null;
-
-    private String userAgent = null;
-
-    private Credentials creds = null;
+    private static Logger logger = null;    
 
     //Cookie vars
     private String authCookieDomain = null;
     private String authCookiePath = null;
     private String authCookieName = null;
     private int authMaxAge = 300;
-    private String refererCookieName = null;
-    private Cookie gsaRefererCookie = null;
-    private Cookie gsaAuthCookie = null;
+    private String refererCookieName = null;    
 
-    //user session vars
-    private UserSession userSession = null;
+    //user session vars    
     SessionTimer sessionTimer;
     long maxSessionAge;
     long sessionTimeout;
     long sessionCleanup;
     boolean isSessionEnabled = false;
 
-    //Non Krb AuthN vars
-    private String authenticationProcessClsName = null;
-    private AuthenticationProcessImpl authenticationProcessCls = null;
-
-    //Kerberos AuthN and AuthZ classes
-    private KerberosAuthenticationProcess krbAuthN = 
-        new KerberosAuthenticationProcess();
+    //Non Krb AuthN var
+    private String authenticationProcessClsName = null;        
 
     //Kerberos Subject Map
     private static Map<String, Subject> krbSubjects = 
@@ -130,11 +118,7 @@ public class Kerberos extends HttpServlet {
     private static final String GSA_CRAWLER_USER = "gsa-crawler";
     private static final String GSA_CRAWLING_CONTENT = "(Enterprise";
 
-    private static final String KRB_COOKIE_NAME = "gsa_krb5_auth";
-
-    //Session Cookie arrays
-    private Vector<Cookie> krbCookies = new Vector<Cookie>();
-    private Vector<Cookie> nonKrbCookies = new Vector<Cookie>();
+    private static final String KRB_COOKIE_NAME = "gsa_krb5_auth";    
 
     //encoding
     private static String encoder = "UTF-8";
@@ -214,16 +198,28 @@ public class Kerberos extends HttpServlet {
 
         // Initialize status code
         int statusCode = HttpServletResponse.SC_UNAUTHORIZED;
-
+        
+        //Authentication Processes 
+        AuthenticationProcessImpl authenticationProcessCls = null;
+        KerberosAuthenticationProcess krbAuthN = 
+            new KerberosAuthenticationProcess();        
+        
         //Initialize cookies vars
-        gsaRefererCookie = null;
-        gsaAuthCookie = null;
+        Cookie gsaRefererCookie = null;
+        Cookie gsaAuthCookie = null;
 
-        //clear cookies
-        krbCookies.clear();
-        nonKrbCookies.clear();
+        //Session Cookie arrays
+        Vector<Cookie> krbCookies = new Vector<Cookie>();
+        Vector<Cookie> nonKrbCookies = new Vector<Cookie>();
+        
+        //user agent
+        String userAgent = null;
+        
+        //user credentials
+        Credentials creds = null;
 
-        //Session ID vars definition
+        //User Session and Session ID vars definition
+        UserSession userSession = null;
         String sessionID = null;
         String encodedSessionID = null;
 
@@ -328,7 +324,7 @@ public class Kerberos extends HttpServlet {
                 }
             }
 
-            createRefererCookie();
+            createRefererCookie(gsaRefererCookie);
 
             //if ((noParams)&&(!cookieExist)) {
             if (noParams) {
@@ -412,11 +408,12 @@ public class Kerberos extends HttpServlet {
                         isNegotiate = false;
 
                         //set Crawler credentials
-                        setCrawlerCredentials(request, KrbAdditionalAuthN);
+                        setCrawlerCredentials(request, creds, KrbAdditionalAuthN);
 
                         //authenticate user
                         statusCode = 
-                                krbAuthentication(request, response, krbCookies, 
+                                krbAuthentication(request, response,
+                                                  krbAuthN, krbCookies, 
                                                   gsaRefererCookie.getValue(), 
                                                   creds, isNegotiate);
 
@@ -447,7 +444,8 @@ public class Kerberos extends HttpServlet {
                         //if (KrbAdditionalAuthN) {
 
                         statusCode = 
-                                nonKrbAuthentication(request, response, nonKrbCookies, 
+                                nonKrbAuthentication(request, response, 
+                                                     authenticationProcessCls, nonKrbCookies, 
                                                      gsaRefererCookie.getValue(), 
                                                      creds);
 
@@ -505,7 +503,8 @@ public class Kerberos extends HttpServlet {
                     
                     //authenticate user
                     statusCode = 
-                            krbAuthentication(request, response, krbCookies, 
+                            krbAuthentication(request, response, 
+                                              krbAuthN, krbCookies, 
                                               refererCookieValue, 
                                               creds, isNegotiate);
 
@@ -531,7 +530,7 @@ public class Kerberos extends HttpServlet {
 
                     } else {
 
-                        boolean doesKrbSubjectExist = lookForKrbCreds();
+                        boolean doesKrbSubjectExist = lookForKrbCreds(creds);
 
                         if (!doesKrbSubjectExist) {
                             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
@@ -549,6 +548,7 @@ public class Kerberos extends HttpServlet {
                         if (!KrbAdditionalAuthN) {
                             statusCode = 
                                     nonKrbAuthentication(request, response, 
+                                                         authenticationProcessCls,
                                                          nonKrbCookies, 
                                                          refererCookieValue, 
                                                          creds);
@@ -635,12 +635,13 @@ public class Kerberos extends HttpServlet {
                                 //user already submits credentials
                                 logger.debug("User has already sent credentials");
 
-                                createCredsDoubleAuthN(request, krbSubj);
+                                createCredsDoubleAuthN(request, creds, krbSubj);
 
                                 logger.debug("User Credentials created. Let's authenticate the user without Krb");
 
                                 statusCode = 
-                                        nonKrbAuthentication(request, response, 
+                                        nonKrbAuthentication(request, response,
+                                                             authenticationProcessCls,
                                                              nonKrbCookies, 
                                                              gsaRefererCookie.getValue(), 
                                                              creds);
@@ -688,7 +689,8 @@ public class Kerberos extends HttpServlet {
 
                         //authenticate user
                         statusCode = 
-                                krbAuthentication(request, response, krbCookies, 
+                                krbAuthentication(request, response, 
+                                                  krbAuthN, krbCookies, 
                                                   gsaRefererCookie.getValue(), 
                                                   creds, isNegotiate);
 
@@ -760,7 +762,9 @@ public class Kerberos extends HttpServlet {
 
             // setSession                                               
             boolean sessionOk = 
-                settingSession(username, creationTime, encodedSessionID);
+                settingSession(userSession, gsaAuthCookie, creds, username, 
+                               krbAuthN, creationTime, encodedSessionID,
+                               krbCookies, nonKrbCookies);
 
             logger.debug("Session is .... " + sessionOk);
 
@@ -807,7 +811,12 @@ public class Kerberos extends HttpServlet {
                     // Redirect
                     response.sendRedirect(gsaRefererCookie.getValue());
                 } else {
-                    redirectingSAML(response, cookies, sessionID);
+                    try {
+                        redirectingSAML(response, cookies, sessionID);
+                    } catch (ValveConfigurationException e) {
+                        logger.error ("Configuration error: "+ e.getMessage(),e);
+                        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                    }
                 }
 
 
@@ -823,7 +832,8 @@ public class Kerberos extends HttpServlet {
      * @param request HTTP request
      * @param KrbAdditionalAuthN if there is an additional authentication process
      */
-    public void setCrawlerCredentials(HttpServletRequest request, 
+    private void setCrawlerCredentials(HttpServletRequest request,
+                                      Credentials creds,
                                       boolean KrbAdditionalAuthN) {
         // Read HTTP request parameters
         String username = request.getParameter("UserIDKrb");
@@ -860,8 +870,9 @@ public class Kerberos extends HttpServlet {
      * 
      * @return HTTP error code
      */
-    public int krbAuthentication(HttpServletRequest request, 
-                                 HttpServletResponse response, 
+    private int krbAuthentication(HttpServletRequest request, 
+                                 HttpServletResponse response,
+                                 KerberosAuthenticationProcess krbAuthN,
                                  Vector<Cookie> krbAuthCookies, String url, 
                                  Credentials creds, boolean isNegotiate) {
 
@@ -895,8 +906,9 @@ public class Kerberos extends HttpServlet {
      * 
      * @return HTTP error code
      */
-    public int nonKrbAuthentication(HttpServletRequest request, 
+    private int nonKrbAuthentication(HttpServletRequest request, 
                                     HttpServletResponse response, 
+                                    AuthenticationProcessImpl authenticationProcessCls,
                                     Vector<Cookie> nonKrbAuthCookies, 
                                     String url, Credentials creds) {
 
@@ -973,8 +985,12 @@ public class Kerberos extends HttpServlet {
      * 
      * @return if the setting process was successful
      */
-    public boolean settingSession(String username, long creationTime, 
-                                  String encodedSessionID) {
+    private boolean settingSession(UserSession userSession, Cookie gsaAuthCookie, 
+                                   Credentials creds, String username, 
+                                   KerberosAuthenticationProcess krbAuthN,
+                                   long creationTime, String encodedSessionID,
+                                   Vector<Cookie> krbCookies,
+                                   Vector<Cookie> nonKrbCookies) {
 
         boolean result = false;
 
@@ -1001,7 +1017,8 @@ public class Kerberos extends HttpServlet {
         userSession.setUserCredentials(creds);
 
         //Cookies
-        settingSessionCookies();
+        settingSessionCookies(krbCookies, nonKrbCookies,
+                              gsaAuthCookie, userSession);
 
         if (krbAuthN.getUserSubject() != null) {
             logger.debug("Kerberos Subject exists");
@@ -1026,7 +1043,10 @@ public class Kerberos extends HttpServlet {
      * Sets the kerberos and non-kerberos authentication cookies
      * 
      */
-    private void settingSessionCookies() {
+    private void settingSessionCookies(Vector<Cookie> krbCookies,
+                                       Vector<Cookie> nonKrbCookies,
+                                       Cookie gsaAuthCookie,
+                                       UserSession userSession) {
         int numKrb = 0;
         int numNonKrb = 0;
         int authCookie = 1;
@@ -1191,7 +1211,7 @@ public class Kerberos extends HttpServlet {
      * 
      * @return
      */
-    private boolean lookForKrbCreds() {
+    private boolean lookForKrbCreds(Credentials creds) {
         //check if Krb subject is Ok
         boolean krbCredFound = false;
         if (creds.getCredential(KRB5_ID) != null) {
@@ -1212,6 +1232,7 @@ public class Kerberos extends HttpServlet {
      * @param krbSubject user subject
      */
     private void createCredsDoubleAuthN(HttpServletRequest request, 
+                                        Credentials creds,
                                         Subject krbSubject) {
         //set creds
         String username = request.getParameter("UserIDKrb");
@@ -1380,7 +1401,7 @@ public class Kerberos extends HttpServlet {
      * Creates the referer cookie
      * 
      */
-    public void createRefererCookie() {
+    private void createRefererCookie(Cookie gsaRefererCookie) {
         // Instantiate authentication cookie with default value
         gsaRefererCookie = 
                 new Cookie(refererCookieName, valveConf.getTestFormsCrawlUrl());
@@ -1405,8 +1426,9 @@ public class Kerberos extends HttpServlet {
      * 
      * @throws IOException
      */
-    public void redirectingSAML(HttpServletResponse response, Cookie[] cookies, 
-                                String sessionID) throws IOException {
+    private void redirectingSAML(HttpServletResponse response, Cookie[] cookies, 
+                                String sessionID) throws IOException,
+                                                         ValveConfigurationException {
         //create the artifact
         long maxArtifactAge = 
             new Long(valveConf.getSAMLConfig().getMaxArtifactAge()).longValue();
@@ -1436,7 +1458,7 @@ public class Kerberos extends HttpServlet {
      * 
      * @return SAML URL for Kerberos authentication
      */
-    public String contructKrbLoginURL() {
+    private String contructKrbLoginURL() {
 
         String loginURL = null;
 
@@ -1471,7 +1493,7 @@ public class Kerberos extends HttpServlet {
      * 
      * @return boolean - if it's Kerberos processing point
      */
-    public boolean isKrbProcess(Cookie krbCookie) {
+    private boolean isKrbProcess(Cookie krbCookie) {
 
         boolean isKrbProcess = false;
 

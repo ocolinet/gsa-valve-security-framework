@@ -18,6 +18,8 @@ package com.google.gsa.valve.utils;
 
 import com.google.gsa.valve.configuration.ValveConfiguration;
 
+import com.google.gsa.valve.configuration.ValveConfigurationException;
+
 import org.apache.regexp.RE;
 
 import java.net.URI;
@@ -72,7 +74,8 @@ public class ValveUtils {
      */
     public static String getGSAHost(String returnPath, 
                                     ValveConfiguration valveConf, 
-                                    Cookie[] cookies) {
+                                    Cookie[] cookies) 
+                                    throws ValveConfigurationException {
         return getGSAHost(returnPath, valveConf, cookies, REQUESTGSA_COOKIE);
     }
 
@@ -88,73 +91,19 @@ public class ValveUtils {
      */
     public static String getGSAHost(String returnPath, 
                                     ValveConfiguration valveConf, 
-                                    Cookie[] cookies, String requestHost) {
+                                    Cookie[] cookies, String requestHost) 
+                                    throws ValveConfigurationException {
 
         String returnUrl = null;
-        Cookie gsaHostCookie = null;
-
-        if (cookies != null) {
-            //Find the cookie that stores the GSA that made the request
-            for (int i = 0; i < cookies.length; i++) {
-                // Look for GSA Request cookie
-                if ((cookies[i].getName()).equals(requestHost)) {
-                    // Cache cookie
-                    gsaHostCookie = cookies[i];
-                    // Debug
-                    if (logger.isDebugEnabled())
-                        logger.debug("GSA Host cookie: [" + 
-                                     gsaHostCookie.getName() + ":" + 
-                                     gsaHostCookie.getValue() + "]");
-                }
-
-            }
-
-            // Assign the search URI
-            if (gsaHostCookie != null) {
-                returnUrl = gsaHostCookie.getValue() + returnPath;
-            } else {
-                logger.error("No " + requestHost + 
-                             " cookie exists. Using alternative method to find gsa host");
-                //If the REQUESTGSA_COOKIE does not exist then look in the GET request paramters for a gsaHost parameter
-                logger.info("Checking for gsaHost in search parameters");
-                //Find the gsaHost parameter in the request query string
-                StringTokenizer st = new StringTokenizer(returnPath, "&");
-                while (st.hasMoreTokens()) {
-
-                    String current = st.nextToken();
-                    if ("&".equals(current)) {
-                        // ignore
-                    } else {
-                        String[] nameValue = current.split("=");
-                        if (nameValue != null)
-                            if (nameValue[0].equalsIgnoreCase("gsahost")) {
-                                if (!nameValue[1].startsWith("http")) {
-                                    returnUrl = 
-                                            "http://" + nameValue[1] + returnPath;
-                                    logger.debug("GSA Host found from gsaHost parameter");
-                                } else {
-                                    returnUrl = nameValue[1] + returnPath;
-                                    logger.debug("GSA Host found from gsaHost parameter");
-                                }
-                            }
-                    }
-                }
-
-                if (returnUrl == null) {
-                    logger.info("No gsaHost defined in the request parameters");
-                    logger.info("Using first defined GSA in config");
-                    Vector searchHosts = valveConf.getSearchHosts();
-                    if (searchHosts != null) {
-                        returnUrl = searchHosts.elementAt(0) + returnPath;
-                    }
-                }
-            }
+        
+        //Change in version 2.1: only one searchHost is supported. It's got
+        //the first reference from the configuration file
+        Vector searchHosts = valveConf.getSearchHosts();
+        if (searchHosts != null) {
+            returnUrl = searchHosts.elementAt(0) + returnPath;
         } else {
-            logger.error("No cookies to read REQUESTGSA_COOKIE from");
-            Vector searchHosts = valveConf.getSearchHosts();
-            if (searchHosts != null) {
-                returnUrl = searchHosts.elementAt(0) + returnPath;
-            }
+            String errorMsg = "Search host must be defined in the config file";
+            throw new ValveConfigurationException (errorMsg);
         }
 
         return returnUrl;

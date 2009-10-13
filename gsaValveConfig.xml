@@ -12,9 +12,7 @@
 <authMaxAge>-1</authMaxAge>
 <authCookieName>gsaSSOCookie</authCookieName>
 <refererCookieName>gsaReferer</refererCookieName>
-<searchHost>http://gsa1.google.com</searchHost>
-<!-- add here more search appliance if needed. For example -->
-<!-- <searchHost>http://gsa2.google.com</searchHost> -->
+<searchHost>http://gsa.google.com</searchHost>
 <maxConnectionsPerHost>60</maxConnectionsPerHost>
 <maxTotalConnections>300</maxTotalConnections>
 <testFormsCrawlUrl>http://valve.google.com:8080/valve/test.html</testFormsCrawlUrl>
