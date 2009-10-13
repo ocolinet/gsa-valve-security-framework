@@ -76,7 +76,6 @@ public class Authenticate extends HttpServlet {
 
     //Vars for Krb support
     private boolean isKerberos = false;
-    private String userAgent = null;
 
     //Session Management Var
     private boolean isSessionEnabled = false;
@@ -88,24 +87,18 @@ public class Authenticate extends HttpServlet {
     public static final long SEC_IN_MIN = 60;
 
     private static final String KRB5_ID = "krb5";
+    
+    //authn process class name
+    String authenticationProcessClsName = null;     
 
-
-    //Cookie vars        
-    Cookie gsaAuthCookie;
+    //Cookie vars            
     String authCookieDomain = null;
     String authCookiePath = null;
     String authCookieName = null;
     int authMaxAge = 300;
-    String refererCookieName = null;
-
-    //AuthN classes vars
-    String authenticationProcessClsName = null;
-    AuthenticationProcessImpl authenticationProcessCls = null;
+    String refererCookieName = null;    
 
     ErrorManagement errorMngmt = null;
-
-    //CLAZARO: cookie array
-    Vector<Cookie> authCookies = new Vector<Cookie>();
 
     //Encoding
     static String encoder = "UTF-8";
@@ -165,9 +158,15 @@ public class Authenticate extends HttpServlet {
         //credentials                
         Credentials creds = new Credentials();
         String username = null;
+        
+        //GSA Authn cookie
+        Cookie gsaAuthCookie = null;
 
-        //reset authCookies vector
-        authCookies.clear();
+        //authCookies vector
+        Vector<Cookie> authCookies = new Vector<Cookie>();
+        
+        //AuthN process instance        
+        AuthenticationProcessImpl authenticationProcessCls = null;
 
         logger.debug("Authenticate servlet Start");
 
@@ -301,8 +300,6 @@ public class Authenticate extends HttpServlet {
 
         //creation time var
         long creationTime = System.currentTimeMillis();
-
-        gsaAuthCookie = null;
 
         //Instantiate authentication cookie with creation time
         //SET a value for the USERID
@@ -447,16 +444,21 @@ public class Authenticate extends HttpServlet {
             String artifact = 
                 SAMLArtifactProcessor.getInstance(maxArtifactAge).storeArtifact(sessionID);
 
-            //Create the referer var                    
-            refererSAML = 
-                    ValveUtils.getGSAHost("", valveConf, cookies, valveConf.getRefererCookieName());
+            //Create the referer var
 
             //redirect to the GSA's Artifact consumer
-            SAMLAuthN samlAuthN = new SAMLAuthN();
-            String redirectURL = 
-                samlAuthN.redirectLocation(refererSAML, relayState, artifact);
-            logger.debug("SAML:Redirecting to " + redirectURL);
-            response.sendRedirect(redirectURL);
+            try {
+                refererSAML =
+                    ValveUtils.getGSAHost("", valveConf, cookies, valveConf.getRefererCookieName());            
+                SAMLAuthN samlAuthN = new SAMLAuthN();
+                String redirectURL = 
+                    samlAuthN.redirectLocation(refererSAML, relayState, artifact);
+                logger.debug("SAML:Redirecting to " + redirectURL);
+                response.sendRedirect(redirectURL);
+            } catch (ValveConfigurationException e) {
+                logger.error ("Configuration error: "+ e.getMessage(),e);
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
         }
 
     }
@@ -568,6 +570,10 @@ public class Authenticate extends HttpServlet {
             try {
                 authMaxAge = Integer.parseInt(valveConf.getAuthMaxAge());
             } catch (NumberFormatException nfe) {
+                logger.error ("Invalid authMaxAge value in the config: "
+                              + nfe.getMessage());
+                logger.error ("Setting authMaxAge to -1...");
+                authMaxAge = -1;
             }
             authenticationProcessClsName = 
                     valveConf.getAuthenticationProcessImpl();

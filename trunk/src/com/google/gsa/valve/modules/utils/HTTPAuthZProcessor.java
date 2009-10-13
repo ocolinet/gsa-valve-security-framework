@@ -49,9 +49,6 @@ public class HTTPAuthZProcessor {
     //logger
     private static Logger logger = Logger.getLogger(HTTPAuthZProcessor.class);
 
-    //Content-Type
-    private static String contentType = null;
-
     //Buffer size. Tune this value if you see bad performance
     private static final int BUFFER_BLOCK_SIZE = 4096;
 
@@ -77,7 +74,7 @@ public class HTTPAuthZProcessor {
 
         logger.debug("Processing Response");
 
-        contentType = method.getResponseHeader("Content-Type").getValue();
+        String contentType = method.getResponseHeader("Content-Type").getValue();
         logger.debug("Content Type is... " + contentType);
         if (contentType != null) {
             if (contentType.startsWith("text/html")) { //content Type is HTML
@@ -88,7 +85,7 @@ public class HTTPAuthZProcessor {
                     try {
                         //process HTML document
                         logger.debug("Document is HTML. Processing");
-                        processHTML(response, method, url, loginUrl);
+                        processHTML(response, method, url, loginUrl, contentType);
                     } catch (IOException e) {
                         logger.error("I/O Error processing HTML document: " + 
                                      e.getMessage(), e);
@@ -102,7 +99,7 @@ public class HTTPAuthZProcessor {
                 } else {
                     logger.debug("It's an HTML doc that is NOT going to be processed (return content as is)");
                     try {
-                        returnHTML(response, method, url, loginUrl);
+                        returnHTML(response, method, url, loginUrl,contentType);
                     } catch (IOException e) {
                         logger.error("I/O Error returning HTML document: " + 
                                      e.getMessage(), e);
@@ -116,7 +113,7 @@ public class HTTPAuthZProcessor {
                 try {
                     logger.debug("Document is not HTML. Processing");
                     //Set document's name
-                    setDocumentName(response, method);
+                    setDocumentName(response, method, contentType);
                     //process non HTML document
                     processNonHTML(response, method);
                 } catch (IOException e) {
@@ -137,7 +134,7 @@ public class HTTPAuthZProcessor {
      * @param method HTTP method
      */
     public static void setDocumentName(HttpServletResponse response, 
-                                       HttpMethodBase method) {
+                                       HttpMethodBase method, String contentType) {
         response.setHeader("Content-Type", contentType);
         //Set the file name properly
         String[] tabpath = (method.getPath()).split("/");
@@ -152,7 +149,7 @@ public class HTTPAuthZProcessor {
         response.setHeader("Content-Disposition", 
                            "inline; filename=" + decodeFileName);
     }
-
+    
     /**
      * If the document is HTML, this method processes its content in order to 
      * rewrite the URLs it includes
@@ -168,6 +165,26 @@ public class HTTPAuthZProcessor {
     public static void processHTML(HttpServletResponse response, 
                                    HttpMethodBase method, String url, 
                                    String loginUrl) throws IOException, 
+                                                           ParserException {
+        processHTML(response, method, url,loginUrl, "text/html");
+    }
+
+    /**
+     * If the document is HTML, this method processes its content in order to 
+     * rewrite the URLs it includes
+     * 
+     * @param response HTTP response
+     * @param method HTTP method
+     * @param url document url
+     * @param loginUrl login url
+     * @param contenType content Type
+     * 
+     * @throws IOException
+     * @throws ParserException
+     */
+    public static void processHTML(HttpServletResponse response, 
+                                   HttpMethodBase method, String url, 
+                                   String loginUrl, String contentType) throws IOException, 
                                                            ParserException {
         logger.debug("Processing an HTML document");
 
@@ -201,13 +218,16 @@ public class HTTPAuthZProcessor {
                 logger.debug("Wrote: " + 
                              ((HTTPVisitor)visitor).getModifiedHTML().length());
             }
+            
+            response.setHeader("Content-Type", contentType);
+            
             //  Garbagge collect
             stream = null;
             parser = null;
             visitor = null;
         }
     }
-
+    
     /**
      * Includes the HTML document in the response
      * 
@@ -221,6 +241,23 @@ public class HTTPAuthZProcessor {
     public static void returnHTML(HttpServletResponse response, 
                                   HttpMethodBase method, String url, 
                                   String loginUrl) throws IOException {
+        returnHTML(response, method, url, loginUrl, "text/html");
+    }
+    
+    /**
+     * Includes the HTML document in the response
+     * 
+     * @param response HTTP response
+     * @param method HTTP method
+     * @param url document url
+     * @param loginUrl login url
+     * @param contentType content type
+     * 
+     * @throws IOException
+     */
+    public static void returnHTML(HttpServletResponse response, 
+                                  HttpMethodBase method, String url, 
+                                  String loginUrl, String contentType) throws IOException {
 
         logger.debug("Returning an HTML document");
 
@@ -234,10 +271,15 @@ public class HTTPAuthZProcessor {
                 out.print(method.getResponseBodyAsString());
                 //close writer
                 out.close();
-            }
+                response.setHeader("Content-Type", contentType);
+            }            
         } catch (Exception e) {
             logger.error("Error when returning HTML content: " + 
                          e.getMessage(), e);
+            //protection
+            if (out != null) {
+                out.close();
+            }
         }
 
     }
@@ -287,6 +329,9 @@ public class HTTPAuthZProcessor {
      * @throws IOException
      */
     public static String readFully(Reader input) throws IOException {
+        
+        String resultStr = null;
+        
         BufferedReader bufferedReader = 
             input instanceof BufferedReader ? (BufferedReader)input : 
             new BufferedReader(input);
@@ -296,7 +341,15 @@ public class HTTPAuthZProcessor {
         while ((charsRead = bufferedReader.read(buffer)) != -1) {
             result.append(buffer, 0, charsRead);
         }
-        return result.toString();
+        
+        resultStr = result.toString();
+        
+        //protection
+        bufferedReader = null;
+        result = null;
+        buffer = null;
+        
+        return resultStr;
     }
 
 }
